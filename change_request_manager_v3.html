@@ -264,7 +264,7 @@
         &nbsp;&nbsp;&nbsp;Value: your <code style="background:var(--white);border:1px solid var(--border);padding:1px 5px;border-radius:3px;">sk-ant-api03-...</code> key → click Encrypt → Save<br>
         <strong>4.</strong> Click Deploy — copy your Worker URL<br>
         <strong>5.</strong> Open <code style="background:var(--white);border:1px solid var(--border);padding:1px 5px;border-radius:3px;">change_request_manager_v3.html</code> in a text editor<br>
-        <strong>6.</strong> Find <code style="background:var(--white);border:1px solid var(--border);padding:1px 5px;border-radius:3px;">const PROXY_URL = 'cr-proxy.quikdraw-software-account.workers.dev'</code><br>
+        <strong>6.</strong> Find <code style="background:var(--white);border:1px solid var(--border);padding:1px 5px;border-radius:3px;">const PROXY_URL = 'https://cr-proxy.quikdraw-software-account.workers.dev'</code><br>
         &nbsp;&nbsp;&nbsp;Replace with your Worker URL → save → push to GitHub
       </div>
       <div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#1e40af;line-height:1.6;">
@@ -890,7 +890,7 @@ function buildImageParts() {
 
 // ─── PROXY CONFIG ─────────────────────────────────────────
 // Replace this with your Cloudflare Worker URL after deploying worker.js
-const PROXY_URL = 'YOUR_WORKER_URL_HERE';
+const PROXY_URL = 'https://cr-proxy.quikdraw-software-account.workers.dev';
 
 // ─── SETTINGS MODAL ───────────────────────────────────────
 function openSettings(promptReason) {
