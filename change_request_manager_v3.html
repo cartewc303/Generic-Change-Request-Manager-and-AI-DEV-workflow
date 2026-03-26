@@ -200,6 +200,29 @@
     .field-row{grid-template-columns:1fr;}
     .steps-row .step-label{font-size:9px;}
   }
+
+  /* SETTINGS MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);width:100%;max-width:440px;overflow:hidden;}
+  .modal-header{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+  .modal-header-icon{width:32px;height:32px;background:var(--accent-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+  .modal-title{font-size:14px;font-weight:600;flex:1;}
+  .modal-close{color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px;}
+  .modal-close:hover{background:var(--bg);color:var(--text);}
+  .modal-body{padding:20px;}
+  .modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+  .key-input-wrap{position:relative;}
+  .key-input-wrap input{padding-right:70px;font-family:monospace;font-size:12px;letter-spacing:.03em;}
+  .key-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--accent);cursor:pointer;background:none;border:none;font-family:var(--font);font-weight:500;}
+  .key-status{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;}
+  .key-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .key-dot.set{background:var(--green);}
+  .key-dot.unset{background:var(--amber);}
+  .settings-cog{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s;flex-shrink:0;}
+  .settings-cog:hover{border-color:var(--accent);background:var(--accent-bg);}
+  .settings-cog.key-set{border-color:var(--green-border);background:var(--green-bg);}
+  .settings-cog.key-unset{border-color:var(--amber-border);background:var(--amber-bg);}
 </style>
 </head>
 <body>
@@ -214,6 +237,44 @@
     <span id="doc-header-count" style="font-size:11px;color:var(--teal);display:none;"></span>
     <span class="status-pill status-draft" id="overall-status">Draft</span>
     <button class="btn btn-outline btn-sm" onclick="resetAll()">New Request</button>
+    <div class="settings-cog key-unset" id="settings-cog" onclick="openSettings()" title="API Key Settings">⚙</div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay hidden" id="settings-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-icon">⚙</div>
+      <div class="modal-title">AI Settings</div>
+      <span class="modal-close" onclick="closeSettings()">✕</span>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <div class="field-label">Anthropic API Key</div>
+        <div class="field-hint" style="margin-bottom:8px;">Required for the AI assist steps — Define, Scope, and Test. Your key is stored only in your browser session and never sent anywhere except directly to Anthropic.</div>
+        <div class="key-input-wrap">
+          <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+          <button class="key-toggle" onclick="toggleKeyVisibility()">Show</button>
+        </div>
+        <div class="key-status" id="key-status">
+          <div class="key-dot unset" id="key-dot"></div>
+          <span id="key-status-text" style="color:var(--muted)">No key set — AI steps will not work</span>
+        </div>
+      </div>
+      <div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:#1e40af;line-height:1.6;">
+        <strong>Don't have an API key?</strong><br>
+        Get one free at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);font-weight:500;">console.anthropic.com</a> → API Keys → Create Key.<br>
+        New accounts include free credits to get started.
+      </div>
+      <div style="margin-top:12px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:11px;color:#92400e;line-height:1.6;">
+        <strong>Security note:</strong> Your key lives only in this browser tab's memory. It is cleared when you close or refresh the page. Never share your key or commit it to a public repository.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveKey()">Save Key</button>
+    </div>
   </div>
 </div>
 
@@ -827,8 +888,67 @@ function buildImageParts() {
     .map(d => ({ type:'image', source:{ type:'base64', media_type: d.mediaType, data: d.base64 } }));
 }
 
+// ─── API KEY MANAGEMENT ───────────────────────────────────
+let apiKey = '';
+
+function openSettings(promptReason) {
+  document.getElementById('api-key-input').value = apiKey;
+  updateKeyStatus();
+  if (promptReason) {
+    const hint = document.querySelector('.modal-body .field-hint');
+    if (hint) hint.innerHTML = `<span style="color:var(--red);font-weight:500;">⚠ ${promptReason}</span> — enter your Anthropic API key below to continue.`;
+  }
+  document.getElementById('settings-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('api-key-input').focus(), 100);
+}
+
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.add('hidden');
+  const hint = document.querySelector('.modal-body .field-hint');
+  if (hint) hint.innerHTML = "Required for the AI assist steps — Define, Scope, and Test. Your key is stored only in your browser session and never sent anywhere except directly to Anthropic.";
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('settings-overlay')) closeSettings();
+}
+
+function saveKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  apiKey = val;
+  updateKeyStatus();
+  closeSettings();
+}
+
+function updateKeyStatus() {
+  const dot  = document.getElementById('key-dot');
+  const text = document.getElementById('key-status-text');
+  const cog  = document.getElementById('settings-cog');
+  const val  = document.getElementById('api-key-input').value.trim();
+  const isSet = (val || apiKey).length > 10;
+  dot.className  = 'key-dot ' + (isSet ? 'set' : 'unset');
+  text.textContent = isSet ? 'API key set — AI steps are enabled' : 'No key set — AI steps will not work';
+  text.style.color = isSet ? 'var(--green)' : 'var(--muted)';
+  cog.className  = 'settings-cog ' + (apiKey.length > 10 ? 'key-set' : 'key-unset');
+  cog.title = apiKey.length > 10 ? 'API Key set ✓ — click to change' : 'API Key required — click to set';
+}
+
+function toggleKeyVisibility() {
+  const inp = document.getElementById('api-key-input');
+  const btn = document.querySelector('.key-toggle');
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
+  else { inp.type = 'password'; btn.textContent = 'Show'; }
+}
+
 // ─── CLAUDE API CALL ──────────────────────────────────────
 async function callClaude(system, userText, targetEl, regenId) {
+  if (!apiKey || apiKey.length < 10) {
+    targetEl.classList.remove('loading');
+    targetEl.innerHTML = `<span style="color:var(--amber);font-weight:500;">⚠ API key required.</span> <span style="color:var(--muted);font-size:12px;">Click the ⚙ settings button in the top-right corner to add your Anthropic API key, then re-run this step.</span>`;
+    if (regenId) document.getElementById(regenId).style.display = 'inline-block';
+    openSettings('AI key needed to run this step');
+    return;
+  }
+
   targetEl.innerHTML = '<div class="spinner"></div> Thinking...';
   targetEl.classList.add('loading');
   if (regenId) document.getElementById(regenId).style.display = 'none';
@@ -840,7 +960,11 @@ async function callClaude(system, userText, targetEl, regenId) {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method:'POST',
-      headers:{ 'Content-Type':'application/json' },
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version':'2023-06-01'
+      },
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -849,6 +973,14 @@ async function callClaude(system, userText, targetEl, regenId) {
       })
     });
     const data = await res.json();
+    if (data.error) {
+      targetEl.classList.remove('loading');
+      const msg = data.error.message || 'Unknown API error';
+      const isKeyError = data.error.type === 'authentication_error';
+      targetEl.innerHTML = `<span style="color:var(--red);">⚠ ${isKeyError ? 'Invalid API key.' : 'API error: ' + msg}</span>${isKeyError ? ' <span style="font-size:12px;color:var(--muted);">Check your key in ⚙ Settings.</span>' : ''}`;
+      if (regenId) document.getElementById(regenId).style.display = 'inline-block';
+      return;
+    }
     const text = data.content?.map(b => b.text||'').join('') || 'No response received.';
     targetEl.classList.remove('loading');
     targetEl.innerHTML = text
@@ -858,7 +990,7 @@ async function callClaude(system, userText, targetEl, regenId) {
     if (regenId) document.getElementById(regenId).style.display = 'inline-block';
   } catch (err) {
     targetEl.classList.remove('loading');
-    targetEl.innerHTML = `<span style="color:var(--red)">⚠ Could not reach AI. Check your connection.</span><br><small style="color:var(--muted)">${err.message}</small>`;
+    targetEl.innerHTML = `<span style="color:var(--red)">⚠ Could not reach the Anthropic API.</span><br><small style="color:var(--muted)">${err.message}</small>`;
     if (regenId) document.getElementById(regenId).style.display = 'inline-block';
   }
 }

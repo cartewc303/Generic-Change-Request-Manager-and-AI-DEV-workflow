@@ -202,23 +202,22 @@ For team access, host on any internal server (IIS, Apache, Nginx) or a shared ne
 
 ---
 
-### Option 4 — Add your Anthropic API key (for private/internal use only)
+### Option 4 — Enter your API key at runtime (recommended for GitHub Pages)
 
-The API call in the file currently sends requests without a hardcoded key, relying on the hosting environment to inject it. For a quick internal deployment, you can embed the key directly:
+The tool includes a built-in **Settings panel** — click the ⚙ icon in the top-right corner of the page. Enter your Anthropic API key there. The key lives only in your browser tab's memory and is cleared when you close or refresh the page.
 
-1. Open `change_request_manager_v3.html` in a text editor
-2. Find the `fetch` call to `https://api.anthropic.com/v1/messages`
-3. Add your key to the headers:
+This is the safest approach for a public GitHub Pages deployment — no key ever touches the repository or the HTML file. Each user enters their own key.
 
-```javascript
-headers: {
-  'Content-Type': 'application/json',
-  'x-api-key': 'YOUR_API_KEY_HERE',
-  'anthropic-version': '2023-06-01'
-}
-```
+**To use:**
+1. Open the deployed page
+2. Click ⚙ in the top-right header
+3. Paste your Anthropic API key (`sk-ant-api03-...`)
+4. Click Save Key — the icon turns green confirming it's set
+5. Proceed through the workflow — AI steps will now work
 
-> ⚠️ **Only do this on a private, internal deployment.** Never commit an API key to a public repository. For public hosting, set up a lightweight proxy server (Cloudflare Worker, Vercel Edge Function, or similar) that holds the key server-side and forwards requests.
+If an AI step is triggered without a key set, the settings modal opens automatically with a prompt to add the key.
+
+> Get a free API key at [console.anthropic.com](https://console.anthropic.com) → API Keys → Create Key.
 
 ---
 
