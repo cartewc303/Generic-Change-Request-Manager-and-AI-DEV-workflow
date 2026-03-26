@@ -1,4 +1,4 @@
-# Change Request Manager v3
+# Change Request Manager V1.0.0
 
 A lightweight, AI-assisted change request workflow tool built as a single self-contained HTML file. Designed for small business teams managing feature requests, UI changes, configuration updates, and software improvements across any platform or system.
 
@@ -294,6 +294,9 @@ Free, no signup required for a basic drop. Upgrade to a Netlify account to get a
 
 MIT — free to use, adapt, and redistribute. No warranty implied.
 
----
+Version numbering going forward — keep it simple:
+ChangeVersion bumpSmall fix or tweakv1.0.1
+New feature addedv1.1.0
+Major rebuildv2.0.0
 
 *Built with Claude (Anthropic) · Change Request Manager v3*
