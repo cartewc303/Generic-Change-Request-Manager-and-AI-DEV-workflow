@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Change Request Manager</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+  :root {
+    --bg:#f5f6f8;--white:#ffffff;--border:#e2e4e9;--border2:#c8ccd6;
+    --text:#1a1d23;--muted:#6b7280;--accent:#6c47ff;--accent-bg:#f0edff;
+    --accent-border:#d4caff;--green:#059669;--green-bg:#ecfdf5;--green-border:#a7f3d0;
+    --amber:#d97706;--amber-bg:#fffbeb;--amber-border:#fcd34d;--red:#dc2626;
+    --red-bg:#fef2f2;--red-border:#fecaca;--blue:#2563eb;--blue-bg:#eff6ff;
+    --blue-border:#bfdbfe;--human:#7c3aed;--human-bg:#faf5ff;--human-border:#ddd6fe;
+    --teal:#0d9488;--teal-bg:#f0fdfa;--teal-border:#99f6e4;
+    --font:'Inter',sans-serif;--radius:10px;--radius-sm:6px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;min-height:100vh;}
+
+  /* HEADER */
+  .header{background:var(--white);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;}
+  .header-logo{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:13px;flex-shrink:0;letter-spacing:-.5px;}
+  .header-title{font-size:15px;font-weight:600;}
+  .header-sub{font-size:12px;color:var(--muted);}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .status-pill{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.04em;}
+  .status-draft{background:var(--bg);color:var(--muted);border:1px solid var(--border2);}
+  .status-active{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);}
+  .status-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+
+  /* LAYOUT */
+  .main{max-width:900px;margin:0 auto;padding:24px 20px 60px;}
+  .two-col{display:grid;grid-template-columns:1fr 272px;gap:20px;align-items:start;}
+
+  /* PROGRESS */
+  .progress-track{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;}
+  .progress-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+  .steps-row{display:flex;align-items:center;}
+  .step-item{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;cursor:pointer;}
+  .step-item:not(:last-child)::after{content:'';position:absolute;top:14px;left:50%;right:-50%;height:2px;background:var(--border);z-index:0;}
+  .step-item.done:not(:last-child)::after{background:var(--accent);}
+  .step-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);z-index:1;position:relative;transition:all .2s;}
+  .step-item.active .step-dot{border-color:var(--accent);background:var(--accent);color:white;}
+  .step-item.done .step-dot{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
+  .step-item.human-gate.active .step-dot{background:var(--human);border-color:var(--human);color:white;}
+  .step-label{font-size:10px;font-weight:500;color:var(--muted);margin-top:5px;text-align:center;line-height:1.3;}
+  .step-item.active .step-label{color:var(--accent);font-weight:600;}
+  .step-item.human-gate.active .step-label{color:var(--human);}
+  .gate-flag{font-size:9px;color:var(--human);font-weight:600;margin-top:1px;}
+
+  /* DOCUMENT LIBRARY */
+  .doc-library{background:var(--white);border:1px solid var(--teal-border);border-radius:var(--radius);padding:16px;position:sticky;top:76px;max-height:calc(100vh - 100px);overflow-y:auto;}
+  .doc-lib-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .doc-lib-title{font-size:13px;font-weight:600;color:var(--teal);flex:1;}
+  .doc-lib-count{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border);border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px;}
+  .doc-lib-sub{font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5;}
+
+  .drop-zone{border:2px dashed var(--teal-border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:all .2s;background:var(--teal-bg);}
+  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--teal);background:#e6fdf9;}
+  .drop-zone input[type=file]{display:none;}
+  .drop-zone-icon{font-size:20px;margin-bottom:4px;}
+  .drop-zone-text{font-size:12px;font-weight:500;color:var(--teal);}
+  .drop-zone-hint{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.5;}
+
+  .doc-list{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+  .doc-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px;}
+  .doc-item-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+  .doc-item-info{flex:1;min-width:0;}
+  .doc-item-name{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .doc-item-meta{font-size:10px;color:var(--muted);margin-top:1px;}
+  .doc-item-tags{display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;}
+  .doc-tag{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;}
+  .tag-pdf{background:#fee2e2;color:#b91c1c;}
+  .tag-img{background:#dbeafe;color:#1d4ed8;}
+  .tag-doc{background:#e0e7ff;color:#4338ca;}
+  .tag-md {background:#d1fae5;color:#065f46;}
+  .tag-txt{background:#f3f4f6;color:#374151;}
+  .tag-csv{background:#fef3c7;color:#92400e;}
+  .doc-remove{color:var(--muted);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;}
+  .doc-remove:hover{color:var(--red);}
+  .doc-preview-toggle{font-size:10px;color:var(--accent);cursor:pointer;text-decoration:underline;margin-top:2px;display:inline-block;}
+  .doc-preview{display:none;margin-top:6px;font-size:10px;color:var(--muted);background:var(--white);border:1px solid var(--border);border-radius:4px;padding:6px 8px;max-height:80px;overflow-y:auto;white-space:pre-wrap;line-height:1.5;}
+  .doc-preview.open{display:block;}
+
+  .doc-ai-note{background:var(--teal-bg);border:1px solid var(--teal-border);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--teal);margin-top:10px;line-height:1.5;}
+  .doc-empty{margin-top:12px;text-align:center;padding:10px 0;}
+
+  /* SECTION CARDS */
+  .section-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;transition:box-shadow .2s;}
+  .section-card.active-section{border-color:var(--accent-border);box-shadow:0 0 0 3px rgba(108,71,255,.07);}
+  .section-card.human-section{border-color:var(--human-border);box-shadow:0 0 0 3px rgba(124,58,237,.06);}
+  .section-card.locked{opacity:.5;pointer-events:none;}
+  .section-header{padding:14px 18px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid transparent;}
+  .section-card.open .section-header{border-bottom-color:var(--border);}
+  .section-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+  .icon-default{background:var(--bg);}
+  .icon-ai{background:var(--accent-bg);}
+  .icon-human{background:var(--human-bg);}
+  .icon-green{background:var(--green-bg);}
+  .section-title-wrap{flex:1;}
+  .section-title{font-size:13px;font-weight:600;}
+  .section-subtitle{font-size:11px;color:var(--muted);}
+  .section-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;letter-spacing:.04em;white-space:nowrap;}
+  .badge-ai{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);}
+  .badge-human{background:var(--human-bg);color:var(--human);border:1px solid var(--human-border);}
+  .badge-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+  .badge-pending{background:var(--bg);color:var(--muted);border:1px solid var(--border2);}
+  .chevron{color:var(--muted);font-size:12px;transition:transform .2s;}
+  .section-card.open .chevron{transform:rotate(180deg);}
+  .section-body{display:none;padding:18px;}
+  .section-card.open .section-body{display:block;}
+
+  /* FORMS */
+  .field-group{margin-bottom:14px;}
+  .field-label{font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+  .field-required{color:var(--red);}
+  .field-hint{font-size:11px;color:var(--muted);margin-top:3px;}
+  input[type=text],textarea,select{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;color:var(--text);background:var(--white);transition:border-color .15s;outline:none;}
+  input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,71,255,.08);}
+  textarea{resize:vertical;min-height:76px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .radio-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .radio-chip{padding:5px 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;color:var(--muted);}
+  .radio-chip:hover{border-color:var(--accent);color:var(--accent);}
+  .radio-chip.selected{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);font-weight:600;}
+
+  /* AI ASSIST */
+  .ai-assist{background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius-sm);padding:13px 15px;margin-bottom:14px;}
+  .ai-assist-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;font-weight:600;color:var(--accent);flex-wrap:wrap;}
+  .ai-doc-badge{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border);border-radius:4px;font-size:10px;padding:1px 6px;font-weight:600;}
+  .ai-assist-body{font-size:13px;color:#4338ca;line-height:1.7;}
+  .ai-assist-body.loading{color:var(--muted);font-style:italic;display:flex;align-items:center;gap:8px;}
+  .spinner{width:14px;height:14px;border:2px solid var(--accent-border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .ai-regen{font-size:11px;color:var(--accent);cursor:pointer;text-decoration:underline;margin-top:6px;display:none;}
+  .ai-regen:hover{color:#5a38e8;}
+
+  /* HUMAN GATE */
+  .human-gate-box{background:var(--human-bg);border:1px solid var(--human-border);border-radius:var(--radius-sm);padding:15px 17px;}
+  .human-gate-title{font-size:13px;font-weight:600;color:var(--human);margin-bottom:5px;}
+  .human-gate-desc{font-size:12px;color:#6d28d9;line-height:1.6;margin-bottom:12px;}
+  .gate-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* BUTTONS */
+  .btn{padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:var(--font);}
+  .btn-primary{background:var(--accent);color:white;}
+  .btn-primary:hover{background:#5a38e8;}
+  .btn-human{background:var(--human);color:white;}
+  .btn-human:hover{background:#6d28d9;}
+  .btn-outline{background:white;border:1px solid var(--border2);color:var(--text);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-danger{background:white;border:1px solid var(--red-border);color:var(--red);}
+  .btn-danger:hover{background:var(--red-bg);}
+  .btn-green{background:var(--green);color:white;}
+  .btn-green:hover{background:#047857;}
+  .btn-sm{padding:5px 11px;font-size:12px;}
+
+  /* CHECKLIST */
+  .check-list{list-style:none;}
+  .check-list li{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .check-list li:last-child{border-bottom:none;}
+  .cb{width:16px;height:16px;border:1.5px solid var(--border2);border-radius:4px;flex-shrink:0;margin-top:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .cb.checked{background:var(--green);border-color:var(--green);}
+  .cb.checked::after{content:'✓';color:white;font-size:10px;font-weight:700;}
+  .cb-label{flex:1;line-height:1.5;}
+  .cb-label.checked{color:var(--muted);text-decoration:line-through;}
+
+  /* BANNERS */
+  .info-banner{padding:10px 13px;border-radius:var(--radius-sm);font-size:12px;line-height:1.6;display:flex;gap:8px;align-items:flex-start;margin-bottom:12px;}
+  .info-banner.blue{background:var(--blue-bg);border:1px solid var(--blue-border);color:#1e40af;}
+  .info-banner.amber{background:var(--amber-bg);border:1px solid var(--amber-border);color:#92400e;}
+  .info-banner.green{background:var(--green-bg);border:1px solid var(--green-border);color:#065f46;}
+
+  .approved-stamp{display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;}
+
+  /* MARKDOWN PREVIEW */
+  .md-preview{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;line-height:1.8;margin-top:8px;}
+  .md-preview h1{font-size:18px;font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .md-preview h2{font-size:15px;font-weight:600;margin:12px 0 6px;}
+  .md-preview h3{font-size:13px;font-weight:600;margin:10px 0 4px;}
+  .md-preview p{margin-bottom:8px;}
+  .md-preview ul,.md-preview ol{padding-left:20px;margin-bottom:8px;}
+  .md-preview li{margin-bottom:3px;}
+  .md-preview code{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:monospace;font-size:12px;}
+  .md-preview pre{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;overflow-x:auto;margin-bottom:8px;}
+  .md-preview pre code{background:none;border:none;padding:0;}
+  .md-preview strong{font-weight:600;}
+  .md-preview em{font-style:italic;}
+  .md-preview blockquote{border-left:3px solid var(--accent-border);padding-left:12px;color:var(--muted);margin:8px 0;}
+  .md-preview table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:12px;}
+  .md-preview th{background:var(--bg);padding:6px 10px;text-align:left;border:1px solid var(--border);font-weight:600;}
+  .md-preview td{padding:6px 10px;border:1px solid var(--border);}
+  .md-preview hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
+
+  @media(max-width:700px){
+    .two-col{grid-template-columns:1fr;}
+    .doc-library{position:static;max-height:none;}
+    .field-row{grid-template-columns:1fr;}
+    .steps-row .step-label{font-size:9px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">CR</div>
+  <div>
+    <div class="header-title">Change Request Manager</div>
+    <div class="header-sub">AI-Assisted · Document Library · Human Gates</div>
+  </div>
+  <div class="header-right">
+    <span id="doc-header-count" style="font-size:11px;color:var(--teal);display:none;"></span>
+    <span class="status-pill status-draft" id="overall-status">Draft</span>
+    <button class="btn btn-outline btn-sm" onclick="resetAll()">New Request</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- PROGRESS -->
+  <div class="progress-track">
+    <div class="progress-label">Request Progress</div>
+    <div class="steps-row" id="steps-row">
+      <div class="step-item active"><div class="step-dot">1</div><div class="step-label">Feature<br>Request</div></div>
+      <div class="step-item"><div class="step-dot">2</div><div class="step-label">Define</div></div>
+      <div class="step-item human-gate"><div class="step-dot">✦</div><div class="step-label">Gate 1<br>Approve</div><div class="gate-flag">👤 Human</div></div>
+      <div class="step-item"><div class="step-dot">3</div><div class="step-label">Scope</div></div>
+      <div class="step-item"><div class="step-dot">4</div><div class="step-label">Build</div></div>
+      <div class="step-item"><div class="step-dot">5</div><div class="step-label">Test</div></div>
+      <div class="step-item human-gate"><div class="step-dot">✦</div><div class="step-label">Gate 2<br>Verify</div><div class="gate-flag">👤 Human</div></div>
+      <div class="step-item"><div class="step-dot">6</div><div class="step-label">Deploy</div></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <!-- STEPS -->
+    <div id="steps-col">
+
+      <!-- 1. FEATURE REQUEST -->
+      <div class="section-card open active-section" id="card-0">
+        <div class="section-header" onclick="toggleCard(0)">
+          <div class="section-icon icon-default">📋</div>
+          <div class="section-title-wrap">
+            <div class="section-title">1. Feature Request</div>
+            <div class="section-subtitle">Capture the ask — who wants it and why</div>
+          </div>
+          <span class="section-badge badge-pending" id="badge-0">In Progress</span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="field-row">
+            <div class="field-group">
+              <div class="field-label">Request Title <span class="field-required">*</span></div>
+              <input type="text" id="req-title" placeholder="Brief descriptive title">
+            </div>
+            <div class="field-group">
+              <div class="field-label">Submitted By <span class="field-required">*</span></div>
+              <input type="text" id="req-by" placeholder="Name / role">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <div class="field-label">Requestor Type</div>
+              <div class="radio-group" id="req-type">
+                <div class="radio-chip" onclick="selectChip(this,'req-type')">Management</div>
+                <div class="radio-chip" onclick="selectChip(this,'req-type')">Customer</div>
+                <div class="radio-chip" onclick="selectChip(this,'req-type')">Internal Staff</div>
+              </div>
+            </div>
+            <div class="field-group">
+              <div class="field-label">Priority</div>
+              <div class="radio-group" id="req-priority">
+                <div class="radio-chip" onclick="selectChip(this,'req-priority')">Low</div>
+                <div class="radio-chip" onclick="selectChip(this,'req-priority')">Medium</div>
+                <div class="radio-chip" onclick="selectChip(this,'req-priority')">High</div>
+              </div>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">What is being requested? <span class="field-required">*</span></div>
+            <textarea id="req-what" placeholder="Describe the change in plain language — what should look or work differently?"></textarea>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Business Reason / Expected Benefit</div>
+            <textarea id="req-why" placeholder="Why is this needed? What problem does it solve?" style="min-height:60px"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <div class="field-label">Module / Component</div>
+              <input type="text" id="req-module" placeholder="e.g. User Portal, Checkout, Dashboard">
+            </div>
+            <div class="field-group">
+              <div class="field-label">Change Type</div>
+              <div class="radio-group" id="req-changetype">
+                <div class="radio-chip" onclick="selectChip(this,'req-changetype')">UI / UX</div>
+                <div class="radio-chip" onclick="selectChip(this,'req-changetype')">Feature</div>
+                <div class="radio-chip" onclick="selectChip(this,'req-changetype')">Config</div>
+                <div class="radio-chip" onclick="selectChip(this,'req-changetype')">Fix</div>
+                <div class="radio-chip" onclick="selectChip(this,'req-changetype')">Integration</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:4px">
+            <button class="btn btn-primary" onclick="completeStep(0)">Submit Request →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. DEFINE -->
+      <div class="section-card locked" id="card-1">
+        <div class="section-header" onclick="toggleCard(1)">
+          <div class="section-icon icon-ai">🤖</div>
+          <div class="section-title-wrap">
+            <div class="section-title">2. Define</div>
+            <div class="section-subtitle">AI drafts requirements &amp; acceptance criteria</div>
+          </div>
+          <span class="section-badge badge-ai" id="badge-1">AI Assist</span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="ai-assist">
+            <div class="ai-assist-header">
+              🤖 AI Analysis
+              <span class="ai-doc-badge" id="define-doc-badge" style="display:none"></span>
+            </div>
+            <div class="ai-assist-body loading" id="ai-define-text"><div class="spinner"></div> Analysing your request...</div>
+            <span class="ai-regen" id="define-regen" onclick="runAIDefine(true)">↻ Re-run with latest documents</span>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Acceptance Criteria <span class="field-required">*</span></div>
+            <div class="field-hint">Review and edit AI-suggested criteria. These become your test conditions at Gate 1.</div>
+            <textarea id="def-criteria" style="min-height:110px;margin-top:6px" placeholder="AI will populate this — edit as needed"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <div class="field-label">System / Platform Version</div>
+              <input type="text" id="def-version" placeholder="e.g. v2.4, Prod build 112">
+            </div>
+            <div class="field-group">
+              <div class="field-label">Delivery Target</div>
+              <input type="text" id="def-target" placeholder="Sprint, date, or milestone">
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Additional Notes / Constraints</div>
+            <textarea id="def-notes" placeholder="Brand guidelines, affected areas, things NOT to change, dependencies..." style="min-height:60px"></textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end">
+            <button class="btn btn-primary" onclick="completeStep(1)">Definition Ready → Gate 1</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GATE 1 -->
+      <div class="section-card locked" id="card-2">
+        <div class="section-header" onclick="toggleCard(2)">
+          <div class="section-icon icon-human">👤</div>
+          <div class="section-title-wrap">
+            <div class="section-title">Gate 1 — Definition Approval</div>
+            <div class="section-subtitle">Human sign-off before build begins</div>
+          </div>
+          <span class="section-badge badge-human" id="badge-2">Awaiting</span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="human-gate-box">
+            <div class="human-gate-title">👤 Human Decision Required</div>
+            <div class="human-gate-desc">Review the request and AI-drafted acceptance criteria. Approving confirms the team understands what is being built and what "done" looks like — before any development time is spent.</div>
+            <div class="field-row" style="margin-bottom:12px">
+              <div class="field-group"><div class="field-label">Approved By</div><input type="text" id="gate1-by" placeholder="Name / role"></div>
+              <div class="field-group"><div class="field-label">Date</div><input type="text" id="gate1-date" placeholder="DD/MM/YYYY"></div>
+            </div>
+            <div class="field-group" style="margin-bottom:12px">
+              <div class="field-label">Notes / Amendments</div>
+              <textarea id="gate1-notes" placeholder="Any changes to scope or criteria before build starts..." style="min-height:56px"></textarea>
+            </div>
+            <div class="gate-actions">
+              <button class="btn btn-human" onclick="approveGate(1)">✓ Approve — Proceed to Build</button>
+              <button class="btn btn-danger" onclick="rejectGate(1)">✗ Reject — Return to Define</button>
+            </div>
+          </div>
+          <div id="gate1-approved" style="display:none;margin-top:10px">
+            <span class="approved-stamp">✓ Approved — Build authorised</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. SCOPE -->
+      <div class="section-card locked" id="card-3">
+        <div class="section-header" onclick="toggleCard(3)">
+          <div class="section-icon icon-ai">🤖</div>
+          <div class="section-title-wrap">
+            <div class="section-title">3. Scope</div>
+            <div class="section-subtitle">AI suggests implementation approach &amp; flags risks</div>
+          </div>
+          <span class="section-badge badge-ai" id="badge-3">AI Assist</span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="ai-assist">
+            <div class="ai-assist-header">
+              🤖 Scope Analysis
+              <span class="ai-doc-badge" id="scope-doc-badge" style="display:none"></span>
+            </div>
+            <div class="ai-assist-body loading" id="ai-scope-text"><div class="spinner"></div> Generating scope recommendations...</div>
+            <span class="ai-regen" id="scope-regen" onclick="runAIScope(true)">↻ Re-run with latest documents</span>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <div class="field-label">Effort Estimate</div>
+              <div class="radio-group" id="scope-effort">
+                <div class="radio-chip" onclick="selectChip(this,'scope-effort')">XS &lt;2h</div>
+                <div class="radio-chip" onclick="selectChip(this,'scope-effort')">S half-day</div>
+                <div class="radio-chip" onclick="selectChip(this,'scope-effort')">M 1–2 days</div>
+                <div class="radio-chip" onclick="selectChip(this,'scope-effort')">L 3–5 days</div>
+                <div class="radio-chip" onclick="selectChip(this,'scope-effort')">XL 1w+</div>
+              </div>
+            </div>
+            <div class="field-group">
+              <div class="field-label">Assigned To</div>
+              <input type="text" id="scope-dev" placeholder="Name / team">
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Implementation Approach</div>
+            <textarea id="scope-approach" placeholder="How will this be built? Which components, files, or systems will be touched?" style="min-height:72px"></textarea>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Dependencies / Risks</div>
+            <textarea id="scope-risks" placeholder="Other components affected? Third-party dependencies? Rollback complexity?" style="min-height:56px"></textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end">
+            <button class="btn btn-primary" onclick="completeStep(3)">Scope Confirmed → Build</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. BUILD -->
+      <div class="section-card locked" id="card-4">
+        <div class="section-header" onclick="toggleCard(4)">
+          <div class="section-icon icon-default">⚙️</div>
+          <div class="section-title-wrap">
+            <div class="section-title">4. Build</div>
+            <div class="section-subtitle">Development on staging — track progress here</div>
+          </div>
+          <span class="section-badge badge-pending" id="badge-4">Pending</span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="info-banner blue"><span>ℹ</span><span>All changes must be made on a <strong>staging / dev environment</strong> first. Never build directly on production.</span></div>
+          <div class="field-group">
+            <div class="field-label">Build Checklist</div>
+            <ul class="check-list">
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Changes made on staging / dev environment only</span></li>
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Affected components and files documented in notes</span></li>
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">No unrelated components or config changed</span></li>
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Basic smoke test passed — no critical errors</span></li>
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Screenshot or recording of the change taken</span></li>
+            </ul>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Build Notes</div>
+            <textarea id="build-notes" placeholder="What was changed, how, and anything the reviewer should know..." style="min-height:72px"></textarea>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Staging URL / Evidence Link</div>
+            <input type="text" id="build-url" placeholder="https://staging.example.com or link to screenshot / recording">
+          </div>
+          <div style="display:flex;justify-content:flex-end">
+            <button class="btn btn-primary" onclick="completeStep(4)">Build Complete → Test</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. TEST -->
+      <div class="section-card locked" id="card-5">
+        <div class="section-header" onclick="toggleCard(5)">
+          <div class="section-icon icon-ai">🤖</div>
+          <div class="section-title-wrap">
+            <div class="section-title">5. Test</div>
+            <div class="section-subtitle">AI generates test cases from acceptance criteria</div>
+          </div>
+          <span class="section-badge badge-ai" id="badge-5">AI Assist</span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="ai-assist">
+            <div class="ai-assist-header">
+              🤖 Generated Test Cases
+              <span class="ai-doc-badge" id="test-doc-badge" style="display:none"></span>
+            </div>
+            <div class="ai-assist-body loading" id="ai-test-text"><div class="spinner"></div> Generating test cases...</div>
+            <span class="ai-regen" id="test-regen" onclick="runAITest(true)">↻ Re-run with latest documents</span>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Test Results</div>
+            <ul class="check-list" id="test-checklist">
+              <li style="color:var(--muted);font-size:12px;padding:8px 0">AI test cases will appear here once generated.</li>
+            </ul>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Test Notes / Issues Found</div>
+            <textarea id="test-notes" placeholder="Any failures, edge cases, or observations..." style="min-height:56px"></textarea>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Overall Test Result</div>
+            <div class="radio-group" id="test-result">
+              <div class="radio-chip" onclick="selectChip(this,'test-result')">✓ All passed</div>
+              <div class="radio-chip" onclick="selectChip(this,'test-result')">⚠ Minor issues</div>
+              <div class="radio-chip" onclick="selectChip(this,'test-result')">✗ Failed — rebuild needed</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end">
+            <button class="btn btn-primary" onclick="completeStep(5)">Testing Done → Gate 2</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GATE 2 -->
+      <div class="section-card locked" id="card-6">
+        <div class="section-header" onclick="toggleCard(6)">
+          <div class="section-icon icon-human">👤</div>
+          <div class="section-title-wrap">
+            <div class="section-title">Gate 2 — Build Verification</div>
+            <div class="section-subtitle">Stakeholder sign-off before production deploy</div>
+          </div>
+          <span class="section-badge badge-human" id="badge-6">Awaiting</span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="human-gate-box">
+            <div class="human-gate-title">👤 Human Decision Required</div>
+            <div class="human-gate-desc">Review the build on staging against the acceptance criteria agreed at Gate 1. Check test results above. This is the last checkpoint before go-live.</div>
+            <div class="field-row" style="margin-bottom:12px">
+              <div class="field-group"><div class="field-label">Verified By</div><input type="text" id="gate2-by" placeholder="Name / role"></div>
+              <div class="field-group"><div class="field-label">Date</div><input type="text" id="gate2-date" placeholder="DD/MM/YYYY"></div>
+            </div>
+            <div class="field-group" style="margin-bottom:12px">
+              <div class="field-label">Verification Notes</div>
+              <textarea id="gate2-notes" placeholder="Confirmation the change meets criteria, or issues needing rework..." style="min-height:56px"></textarea>
+            </div>
+            <div class="gate-actions">
+              <button class="btn btn-green" onclick="approveGate(2)">✓ Verified — Approve for Production</button>
+              <button class="btn btn-danger" onclick="rejectGate(2)">✗ Issues Found — Return to Build</button>
+            </div>
+          </div>
+          <div id="gate2-approved" style="display:none;margin-top:10px">
+            <span class="approved-stamp">✓ Verified — Production deploy authorised</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. DEPLOY -->
+      <div class="section-card locked" id="card-7">
+        <div class="section-header" onclick="toggleCard(7)">
+          <div class="section-icon icon-green">🚀</div>
+          <div class="section-title-wrap">
+            <div class="section-title">6. Deploy</div>
+            <div class="section-subtitle">Pre and post-deploy checklist · confirm completion</div>
+          </div>
+          <span class="section-badge badge-pending" id="badge-7">Pending</span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="info-banner amber"><span>⚠</span><span>Deploy during a <strong>low-traffic window</strong>. Confirm rollback plan before starting.</span></div>
+          <div class="field-group">
+            <div class="field-label">Pre-Deploy</div>
+            <ul class="check-list">
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Backup / snapshot taken</span></li>
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Rollback procedure confirmed</span></li>
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Gate 2 approval on record</span></li>
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Deploy window agreed with stakeholders</span></li>
+            </ul>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Post-Deploy</div>
+            <ul class="check-list">
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Change verified correct on production</span></li>
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">No related areas or components broken</span></li>
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Requestor notified and confirmed satisfied</span></li>
+              <li><div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">Change logged in project change log</span></li>
+            </ul>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Deploy Notes</div>
+            <textarea id="deploy-notes" placeholder="Who deployed, when, any issues encountered..." style="min-height:60px"></textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end">
+            <button class="btn btn-green" onclick="completeStep(7)">✓ Mark Complete</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPLETE -->
+      <div id="complete-banner" style="display:none;background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);padding:24px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:8px">✅</div>
+        <div style="font-size:16px;font-weight:600;color:var(--green);margin-bottom:6px">Change Request Complete</div>
+        <div style="font-size:13px;color:#065f46;margin-bottom:16px">Successfully deployed and verified.</div>
+        <button class="btn btn-outline" onclick="resetAll()">Start a New Request</button>
+      </div>
+
+    </div><!-- /steps-col -->
+
+    <!-- DOCUMENT LIBRARY -->
+    <div class="doc-library" id="doc-library">
+      <div class="doc-lib-header">
+        <span style="font-size:16px">📁</span>
+        <span class="doc-lib-title">Document Library</span>
+        <span class="doc-lib-count" id="doc-count">0</span>
+      </div>
+      <div class="doc-lib-sub">Upload supporting files at any stage. The AI reads all documents at every assist step automatically.</div>
+
+      <div class="drop-zone" id="drop-zone"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="handleDragOver(event)"
+           ondragleave="handleDragLeave(event)"
+           ondrop="handleDrop(event)">
+        <input type="file" id="file-input" multiple
+               accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.md,.markdown,.doc,.docx,.csv"
+               onchange="handleFileSelect(event)">
+        <div class="drop-zone-icon">⬆</div>
+        <div class="drop-zone-text">Click or drag files here</div>
+        <div class="drop-zone-hint">PDF · Images · Markdown · Word<br>TXT · CSV</div>
+      </div>
+
+      <div class="doc-list" id="doc-list"></div>
+
+      <div class="doc-ai-note" id="doc-ai-note" style="display:none">
+        🤖 <strong id="doc-ai-note-text"></strong> loaded into AI context for all assist steps.
+      </div>
+
+      <div class="doc-empty" id="doc-empty">
+        <div style="font-size:22px;margin-bottom:6px">📄</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6">No documents yet.<br>Briefs, specs, brand guidelines,<br>screenshots — anything helps.</div>
+      </div>
+    </div>
+
+  </div><!-- /two-col -->
+</div>
+
+<script>
+// ─── DOCUMENT LIBRARY ─────────────────────────────────────
+const docLibrary = [];
+
+const FILE_ICONS = { pdf:'📕', img:'🖼', doc:'📘', md:'📗', csv:'📊', txt:'📄' };
+const FILE_TAGS  = {
+  pdf: ['tag-pdf','PDF'], img: ['tag-img','Image'],
+  doc: ['tag-doc','Doc'], md:  ['tag-md','MD'],
+  csv: ['tag-csv','CSV'], txt: ['tag-txt','TXT']
+};
+
+function getFileKind(type, name) {
+  if (type.includes('pdf')) return 'pdf';
+  if (type.startsWith('image/')) return 'img';
+  if (type.includes('word') || type.includes('document') || name.endsWith('.docx') || name.endsWith('.doc')) return 'doc';
+  if (name.endsWith('.md') || name.endsWith('.markdown')) return 'md';
+  if (name.endsWith('.csv') || type.includes('csv')) return 'csv';
+  return 'txt';
+}
+function formatSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+// ─── MARKDOWN PARSER (lightweight) ───────────────────────
+function parseMarkdown(md) {
+  let html = md
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    // fenced code blocks
+    .replace(/```[\w]*\n([\s\S]*?)```/g, (_,c)=>`<pre><code>${c}</code></pre>`)
+    // headings
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    // bold / italic
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    // inline code
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    // blockquote
+    .replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>')
+    // hr
+    .replace(/^---$/gm,'<hr>')
+    // unordered lists
+    .replace(/^\- (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/s, s => `<ul>${s}</ul>`)
+    // ordered lists
+    .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+    // paragraphs (lines not already wrapped)
+    .split('\n').map(line => {
+      if (/^<(h[1-3]|ul|ol|li|pre|blockquote|hr)/.test(line.trim()) || line.trim() === '') return line;
+      return `<p>${line}</p>`;
+    }).join('\n');
+  return html;
+}
+
+// ─── FILE PROCESSING ──────────────────────────────────────
+function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function handleDragLeave() { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function handleDrop(e) { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); processFiles([...e.dataTransfer.files]); }
+function handleFileSelect(e) { processFiles([...e.target.files]); e.target.value = ''; }
+
+function processFiles(files) {
+  files.forEach(file => {
+    const id = 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    const kind = getFileKind(file.type, file.name);
+    const reader = new FileReader();
+
+    reader.onload = ev => {
+      const result = ev.target.result;
+      let content = '', base64 = '', parsedHtml = '';
+
+      if (kind === 'img') {
+        base64 = result.split(',')[1];
+        content = `[Image: ${file.name}]`;
+      } else if (kind === 'pdf') {
+        base64 = result.split(',')[1];
+        content = `[PDF: ${file.name} (${formatSize(file.size)})]`;
+      } else if (kind === 'md') {
+        content = result;
+        parsedHtml = parseMarkdown(result);
+      } else {
+        content = result;
+      }
+
+      docLibrary.push({ id, name: file.name, size: file.size, type: file.type, kind, content, base64, parsedHtml, mediaType: file.type });
+      renderDocLibrary();
+      updateDocBadges();
+    };
+
+    if (kind === 'img' || kind === 'pdf') reader.readAsDataURL(file);
+    else reader.readAsText(file);
+  });
+}
+
+function removeDoc(id) {
+  const i = docLibrary.findIndex(d => d.id === id);
+  if (i > -1) docLibrary.splice(i, 1);
+  renderDocLibrary();
+  updateDocBadges();
+}
+
+function togglePreview(id) {
+  const el = document.getElementById('preview-' + id);
+  const btn = document.getElementById('prevbtn-' + id);
+  if (!el) return;
+  el.classList.toggle('open');
+  btn.textContent = el.classList.contains('open') ? 'Hide preview' : 'Preview';
+}
+
+function renderDocLibrary() {
+  const list    = document.getElementById('doc-list');
+  const empty   = document.getElementById('doc-empty');
+  const countEl = document.getElementById('doc-count');
+  const note    = document.getElementById('doc-ai-note');
+  const noteText= document.getElementById('doc-ai-note-text');
+  const hdr     = document.getElementById('doc-header-count');
+
+  const n = docLibrary.length;
+  countEl.textContent = n;
+  empty.style.display = n === 0 ? 'block' : 'none';
+  note.style.display  = n > 0 ? 'block' : 'none';
+  hdr.style.display   = n > 0 ? 'inline' : 'none';
+  if (n > 0) {
+    noteText.textContent = `${n} document${n!==1?'s':''}`;
+    hdr.textContent = `📁 ${n} doc${n!==1?'s':''}`;
+  }
+
+  list.innerHTML = '';
+  docLibrary.forEach(doc => {
+    const [tagClass, tagLabel] = FILE_TAGS[doc.kind] || FILE_TAGS.txt;
+    const icon = FILE_ICONS[doc.kind] || FILE_ICONS.txt;
+    const canPreview = doc.kind === 'md' || doc.kind === 'txt' || doc.kind === 'csv';
+
+    const div = document.createElement('div');
+    div.className = 'doc-item';
+    div.innerHTML = `
+      <div class="doc-item-icon">${icon}</div>
+      <div class="doc-item-info">
+        <div class="doc-item-name" title="${doc.name}">${doc.name}</div>
+        <div class="doc-item-meta">${formatSize(doc.size)}</div>
+        <div class="doc-item-tags">
+          <span class="doc-tag ${tagClass}">${tagLabel}</span>
+          ${doc.kind === 'md' ? '<span class="doc-tag tag-md">Rendered</span>' : ''}
+        </div>
+        ${canPreview ? `<span class="doc-preview-toggle" id="prevbtn-${doc.id}" onclick="togglePreview('${doc.id}')">Preview</span>
+        <div class="doc-preview" id="preview-${doc.id}">${doc.kind === 'md' && doc.parsedHtml
+          ? doc.parsedHtml.slice(0, 600) + (doc.parsedHtml.length > 600 ? '…' : '')
+          : (doc.content || '').slice(0, 400) + (doc.content?.length > 400 ? '…' : '')
+        }</div>` : ''}
+      </div>
+      <div class="doc-remove" onclick="removeDoc('${doc.id}')" title="Remove">✕</div>`;
+    list.appendChild(div);
+  });
+}
+
+function updateDocBadges() {
+  const n = docLibrary.length;
+  const label = n > 0 ? `${n} doc${n!==1?'s':''} in context` : null;
+  ['define-doc-badge','scope-doc-badge','test-doc-badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = label ? 'inline' : 'none';
+    if (label) el.textContent = label;
+  });
+}
+
+// ─── AI CONTEXT BUILDER ───────────────────────────────────
+function buildDocContext() {
+  if (!docLibrary.length) return '';
+  const parts = docLibrary.map(doc => {
+    if (doc.kind === 'img') return `[Uploaded image: ${doc.name}]`;
+    if (doc.kind === 'pdf') return `[Uploaded PDF: ${doc.name}]\n${doc.content}`;
+    if (doc.kind === 'md')  return `--- Markdown document: ${doc.name} ---\n${doc.content}\n--- End ---`;
+    return `--- Document: ${doc.name} ---\n${doc.content}\n--- End ---`;
+  });
+  return `\n\nUploaded supporting documents — use these to inform your response:\n\n${parts.join('\n\n')}`;
+}
+
+function buildImageParts() {
+  return docLibrary
+    .filter(d => d.kind === 'img' && d.base64)
+    .map(d => ({ type:'image', source:{ type:'base64', media_type: d.mediaType, data: d.base64 } }));
+}
+
+// ─── CLAUDE API CALL ──────────────────────────────────────
+async function callClaude(system, userText, targetEl, regenId) {
+  targetEl.innerHTML = '<div class="spinner"></div> Thinking...';
+  targetEl.classList.add('loading');
+  if (regenId) document.getElementById(regenId).style.display = 'none';
+
+  const imageParts = buildImageParts();
+  const docContext = buildDocContext();
+  const contentParts = [...imageParts, { type:'text', text: userText + docContext }];
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system,
+        messages:[{ role:'user', content: contentParts }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(b => b.text||'').join('') || 'No response received.';
+    targetEl.classList.remove('loading');
+    targetEl.innerHTML = text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\n/g,'<br>');
+    if (regenId) document.getElementById(regenId).style.display = 'inline-block';
+  } catch (err) {
+    targetEl.classList.remove('loading');
+    targetEl.innerHTML = `<span style="color:var(--red)">⚠ Could not reach AI. Check your connection.</span><br><small style="color:var(--muted)">${err.message}</small>`;
+    if (regenId) document.getElementById(regenId).style.display = 'inline-block';
+  }
+}
+
+// ─── AI RUNNERS ───────────────────────────────────────────
+async function runAIDefine(regen = false) {
+  const title  = document.getElementById('req-title').value || 'a change request';
+  const what   = document.getElementById('req-what').value || '';
+  const why    = document.getElementById('req-why').value || '';
+  const module = document.getElementById('req-module').value || 'the system';
+  const type   = document.querySelector('#req-changetype .selected')?.textContent || '';
+  const docs   = docLibrary.length ? ` ${docLibrary.length} supporting document(s) have also been uploaded.` : '';
+
+  const system = `You are a business analyst assistant helping define software change requests clearly and concisely.
+Given a change request, produce:
+1. A 1–2 sentence plain-language analysis of what is being asked
+2. 4–6 numbered, testable acceptance criteria under the heading "Suggested Acceptance Criteria:"
+Be practical and specific. If documents are provided, use them to make criteria more accurate.
+Do not include preamble or closing remarks — just the analysis and criteria.`;
+
+  const user = `Title: ${title}\nComponent: ${module}\nType: ${type}\nWhat: ${what}\nWhy: ${why}${docs}`;
+  const el = document.getElementById('ai-define-text');
+  await callClaude(system, user, el, regen ? 'define-regen' : null);
+  document.getElementById('define-regen').style.display = 'inline-block';
+
+  if (!regen && !document.getElementById('def-criteria').value) {
+    setTimeout(() => {
+      const raw = el.innerText;
+      const idx = raw.indexOf('Suggested Acceptance Criteria:');
+      if (idx > -1) document.getElementById('def-criteria').value = raw.slice(idx + 31).trim();
+    }, 400);
+  }
+}
+
+async function runAIScope(regen = false) {
+  const title    = document.getElementById('req-title').value || 'this request';
+  const type     = document.querySelector('#req-changetype .selected')?.textContent || 'change';
+  const module   = document.getElementById('req-module').value || 'the system';
+  const criteria = document.getElementById('def-criteria').value || '';
+  const version  = document.getElementById('def-version').value || '';
+  const docs     = docLibrary.length ? ` ${docLibrary.length} supporting document(s) have been uploaded — reference them where relevant.` : '';
+
+  const system = `You are a senior software developer giving practical scoping advice to a small business team.
+Cover: recommended implementation approach, key areas to change, risks or dependencies, and a rough effort note.
+Use plain language with short bold section headers. Be concise — 150–250 words maximum.
+If technical documents or specs are uploaded, reference them specifically.`;
+
+  const user = `Request: ${title}\nType: ${type}\nComponent: ${module}\nVersion: ${version}\nCriteria: ${criteria}${docs}`;
+  await callClaude(system, user, document.getElementById('ai-scope-text'), regen ? 'scope-regen' : null);
+  document.getElementById('scope-regen').style.display = 'inline-block';
+}
+
+async function runAITest(regen = false) {
+  const title    = document.getElementById('req-title').value || 'this change';
+  const module   = document.getElementById('req-module').value || 'the system';
+  const criteria = document.getElementById('def-criteria').value || '';
+  const build    = document.getElementById('build-notes').value || '';
+  const docs     = docLibrary.length ? ` ${docLibrary.length} supporting document(s) also uploaded — add relevant test cases from them.` : '';
+
+  const system = `You are a QA analyst generating practical test cases for a software change request.
+Output ONLY a numbered list of test cases. Each is one sentence: what to check and what the expected result is.
+Be specific — mention browsers, devices, or environments where relevant.
+Generate 5–8 test cases. No preamble, no summary — only the numbered list.`;
+
+  const user = `Feature: ${title}\nComponent: ${module}\nAcceptance criteria:\n${criteria}\nBuild notes: ${build}${docs}`;
+  const el = document.getElementById('ai-test-text');
+  await callClaude(system, user, el, regen ? 'test-regen' : null);
+  document.getElementById('test-regen').style.display = 'inline-block';
+
+  setTimeout(() => {
+    const lines = el.innerText.split('\n').filter(l => /^\d+\./.test(l.trim()));
+    const list = document.getElementById('test-checklist');
+    list.innerHTML = '';
+    if (lines.length > 0) {
+      lines.forEach(line => {
+        const clean = line.replace(/^\d+\.\s*/,'').trim();
+        if (!clean) return;
+        const li = document.createElement('li');
+        li.innerHTML = `<div class="cb" onclick="toggleCb(this)"></div><span class="cb-label">${clean}</span>`;
+        list.appendChild(li);
+      });
+    } else {
+      list.innerHTML = '<li style="color:var(--muted);font-size:12px;padding:8px 0">Add test steps manually based on your acceptance criteria.</li>';
+    }
+  }, 500);
+}
+
+// ─── STEP FLOW ────────────────────────────────────────────
+let currentStep = 0;
+
+function completeStep(idx) {
+  if (idx === 0) {
+    if (!document.getElementById('req-title').value.trim()) { alert('Please enter a request title.'); return; }
+    if (!document.getElementById('req-what').value.trim())  { alert('Please describe what is being requested.'); return; }
+  }
+  const dots = document.querySelectorAll('#steps-row .step-item');
+  dots[idx].classList.add('done'); dots[idx].classList.remove('active');
+  const badge = document.getElementById('badge-' + idx);
+  if (badge) { badge.textContent = 'Done'; badge.className = 'section-badge badge-done'; }
+  document.getElementById('card-' + idx).classList.remove('active-section','human-section','open');
+  const next = idx + 1;
+  if (next <= 7) { unlockCard(next); if (dots[next]) { dots[next].classList.add('active'); dots[next].classList.remove('done'); } currentStep = next; }
+  if (idx === 7) showComplete();
+  updateStatus();
+}
+
+function unlockCard(idx) {
+  const card = document.getElementById('card-' + idx);
+  if (!card) return;
+  card.classList.remove('locked');
+  card.classList.add('open');
+  if (idx === 1) { card.classList.add('active-section'); runAIDefine(); }
+  if (idx === 2) card.classList.add('human-section');
+  if (idx === 3) runAIScope();
+  if (idx === 5) runAITest();
+  setTimeout(() => card.scrollIntoView({ behavior:'smooth', block:'start' }), 120);
+}
+
+function approveGate(gateNum) {
+  const idx = gateNum === 1 ? 2 : 6;
+  const by  = document.getElementById('gate' + gateNum + '-by');
+  if (!by.value.trim()) { alert('Please enter who is approving.'); return; }
+  document.getElementById('gate' + gateNum + '-approved').style.display = 'block';
+  const badge = document.getElementById('badge-' + idx);
+  badge.textContent = 'Approved'; badge.className = 'section-badge badge-done';
+  const dots = document.querySelectorAll('#steps-row .step-item');
+  dots[idx].classList.add('done'); dots[idx].classList.remove('active');
+  document.getElementById('card-' + idx).classList.remove('open');
+  const next = idx + 1;
+  unlockCard(next);
+  if (dots[next]) dots[next].classList.add('active');
+  currentStep = next;
+  updateStatus();
+}
+
+function rejectGate(gateNum) {
+  const returnTo = gateNum === 1 ? 1 : 4;
+  const label    = gateNum === 1 ? 'Define' : 'Build';
+  alert(`Request returned to ${label}. Please revise and resubmit.`);
+  const card = document.getElementById('card-' + returnTo);
+  card.classList.remove('locked'); card.classList.add('open','active-section');
+  card.scrollIntoView({ behavior:'smooth', block:'start' });
+  const badge = document.getElementById('badge-' + returnTo);
+  if (badge) { badge.textContent = 'Needs Revision'; badge.style.cssText = 'background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;'; }
+}
+
+function toggleCard(idx) {
+  const card = document.getElementById('card-' + idx);
+  if (!card || card.classList.contains('locked')) return;
+  card.classList.toggle('open');
+}
+function selectChip(el, groupId) {
+  document.querySelectorAll('#' + groupId + ' .radio-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function toggleCb(el) {
+  el.classList.toggle('checked');
+  const lbl = el.nextElementSibling;
+  if (lbl) lbl.classList.toggle('checked', el.classList.contains('checked'));
+}
+function updateStatus() {
+  const el = document.getElementById('overall-status');
+  if (currentStep === 0)      { el.textContent = 'Draft';       el.className = 'status-pill status-draft'; }
+  else if (currentStep >= 7)  { el.textContent = 'Complete';    el.className = 'status-pill status-done'; }
+  else                        { el.textContent = 'In Progress'; el.className = 'status-pill status-active'; }
+}
+function showComplete() {
+  document.getElementById('complete-banner').style.display = 'block';
+  document.getElementById('complete-banner').scrollIntoView({ behavior:'smooth' });
+  document.getElementById('overall-status').textContent = 'Complete';
+  document.getElementById('overall-status').className = 'status-pill status-done';
+}
+function resetAll() {
+  if (currentStep > 0 && !confirm('Start a new request? Current data will be cleared.')) return;
+  location.reload();
+}
+</script>
+</body>
+</html>
