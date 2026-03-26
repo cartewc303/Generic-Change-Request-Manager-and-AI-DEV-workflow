@@ -250,30 +250,30 @@
       <span class="modal-close" onclick="closeSettings()">✕</span>
     </div>
     <div class="modal-body">
+      <div id="settings-reason" style="display:none;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:14px;font-weight:500;"></div>
       <div class="field-group">
-        <div class="field-label">Anthropic API Key</div>
-        <div class="field-hint" style="margin-bottom:8px;">Required for the AI assist steps — Define, Scope, and Test. Your key is stored only in your browser session and never sent anywhere except directly to Anthropic.</div>
-        <div class="key-input-wrap">
-          <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
-          <button class="key-toggle" onclick="toggleKeyVisibility()">Show</button>
-        </div>
-        <div class="key-status" id="key-status">
-          <div class="key-dot unset" id="key-dot"></div>
-          <span id="key-status-text" style="color:var(--muted)">No key set — AI steps will not work</span>
-        </div>
+        <div class="field-label">How AI works in this app</div>
+        <div class="field-hint" style="margin-bottom:12px;">AI calls are routed through a Cloudflare Worker proxy that holds your Anthropic API key securely — the key never appears in this HTML file or the GitHub repo.</div>
       </div>
-      <div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:#1e40af;line-height:1.6;">
-        <strong>Don't have an API key?</strong><br>
-        Get one free at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);font-weight:500;">console.anthropic.com</a> → API Keys → Create Key.<br>
-        New accounts include free credits to get started.
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:12px;line-height:1.8;margin-bottom:12px;">
+        <strong style="font-size:13px;">Setup steps:</strong><br><br>
+        <strong>1.</strong> Go to <a href="https://dash.cloudflare.com" target="_blank" style="color:var(--accent);">dash.cloudflare.com</a> → Workers &amp; Pages → Create Worker<br>
+        <strong>2.</strong> Paste the contents of <code style="background:var(--white);border:1px solid var(--border);padding:1px 5px;border-radius:3px;">worker.js</code> from the repo<br>
+        <strong>3.</strong> Click Settings → Variables → Add variable:<br>
+        &nbsp;&nbsp;&nbsp;Name: <code style="background:var(--white);border:1px solid var(--border);padding:1px 5px;border-radius:3px;">ANTHROPIC_API_KEY</code><br>
+        &nbsp;&nbsp;&nbsp;Value: your <code style="background:var(--white);border:1px solid var(--border);padding:1px 5px;border-radius:3px;">sk-ant-api03-...</code> key → click Encrypt → Save<br>
+        <strong>4.</strong> Click Deploy — copy your Worker URL<br>
+        <strong>5.</strong> Open <code style="background:var(--white);border:1px solid var(--border);padding:1px 5px;border-radius:3px;">change_request_manager_v3.html</code> in a text editor<br>
+        <strong>6.</strong> Find <code style="background:var(--white);border:1px solid var(--border);padding:1px 5px;border-radius:3px;">const PROXY_URL = 'cr-proxy.quikdraw-software-account.workers.dev'</code><br>
+        &nbsp;&nbsp;&nbsp;Replace with your Worker URL → save → push to GitHub
       </div>
-      <div style="margin-top:12px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:11px;color:#92400e;line-height:1.6;">
-        <strong>Security note:</strong> Your key lives only in this browser tab's memory. It is cleared when you close or refresh the page. Never share your key or commit it to a public repository.
+      <div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#1e40af;line-height:1.6;">
+        <strong>Don't have an Anthropic API key?</strong><br>
+        Get one free at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);font-weight:500;">console.anthropic.com</a> → API Keys → Create Key.
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline btn-sm" onclick="closeSettings()">Cancel</button>
-      <button class="btn btn-primary btn-sm" onclick="saveKey()">Save Key</button>
+      <button class="btn btn-primary btn-sm" onclick="closeSettings()">Got it</button>
     </div>
   </div>
 </div>
@@ -888,64 +888,49 @@ function buildImageParts() {
     .map(d => ({ type:'image', source:{ type:'base64', media_type: d.mediaType, data: d.base64 } }));
 }
 
-// ─── API KEY MANAGEMENT ───────────────────────────────────
-let apiKey = '';
+// ─── PROXY CONFIG ─────────────────────────────────────────
+// Replace this with your Cloudflare Worker URL after deploying worker.js
+const PROXY_URL = 'YOUR_WORKER_URL_HERE';
 
+// ─── SETTINGS MODAL ───────────────────────────────────────
 function openSettings(promptReason) {
-  document.getElementById('api-key-input').value = apiKey;
-  updateKeyStatus();
-  if (promptReason) {
-    const hint = document.querySelector('.modal-body .field-hint');
-    if (hint) hint.innerHTML = `<span style="color:var(--red);font-weight:500;">⚠ ${promptReason}</span> — enter your Anthropic API key below to continue.`;
+  const reasonEl = document.getElementById('settings-reason');
+  if (promptReason && reasonEl) {
+    reasonEl.textContent = promptReason;
+    reasonEl.style.display = 'block';
+  } else if (reasonEl) {
+    reasonEl.style.display = 'none';
   }
   document.getElementById('settings-overlay').classList.remove('hidden');
-  setTimeout(() => document.getElementById('api-key-input').focus(), 100);
 }
 
 function closeSettings() {
   document.getElementById('settings-overlay').classList.add('hidden');
-  const hint = document.querySelector('.modal-body .field-hint');
-  if (hint) hint.innerHTML = "Required for the AI assist steps — Define, Scope, and Test. Your key is stored only in your browser session and never sent anywhere except directly to Anthropic.";
 }
 
 function handleOverlayClick(e) {
   if (e.target === document.getElementById('settings-overlay')) closeSettings();
 }
 
-function saveKey() {
-  const val = document.getElementById('api-key-input').value.trim();
-  apiKey = val;
-  updateKeyStatus();
-  closeSettings();
+function updateCogStatus() {
+  const cog = document.getElementById('settings-cog');
+  const configured = PROXY_URL && PROXY_URL !== 'YOUR_WORKER_URL_HERE';
+  cog.className = 'settings-cog ' + (configured ? 'key-set' : 'key-unset');
+  cog.title = configured ? 'AI proxy configured ✓' : 'AI proxy not configured — click for setup instructions';
 }
 
-function updateKeyStatus() {
-  const dot  = document.getElementById('key-dot');
-  const text = document.getElementById('key-status-text');
-  const cog  = document.getElementById('settings-cog');
-  const val  = document.getElementById('api-key-input').value.trim();
-  const isSet = (val || apiKey).length > 10;
-  dot.className  = 'key-dot ' + (isSet ? 'set' : 'unset');
-  text.textContent = isSet ? 'API key set — AI steps are enabled' : 'No key set — AI steps will not work';
-  text.style.color = isSet ? 'var(--green)' : 'var(--muted)';
-  cog.className  = 'settings-cog ' + (apiKey.length > 10 ? 'key-set' : 'key-unset');
-  cog.title = apiKey.length > 10 ? 'API Key set ✓ — click to change' : 'API Key required — click to set';
-}
-
-function toggleKeyVisibility() {
-  const inp = document.getElementById('api-key-input');
-  const btn = document.querySelector('.key-toggle');
-  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
-  else { inp.type = 'password'; btn.textContent = 'Show'; }
-}
-
-// ─── CLAUDE API CALL ──────────────────────────────────────
+// ─── CLAUDE API CALL (via Cloudflare Worker proxy) ────────
 async function callClaude(system, userText, targetEl, regenId) {
-  if (!apiKey || apiKey.length < 10) {
+
+  if (!PROXY_URL || PROXY_URL === 'YOUR_WORKER_URL_HERE') {
     targetEl.classList.remove('loading');
-    targetEl.innerHTML = `<span style="color:var(--amber);font-weight:500;">⚠ API key required.</span> <span style="color:var(--muted);font-size:12px;">Click the ⚙ settings button in the top-right corner to add your Anthropic API key, then re-run this step.</span>`;
+    targetEl.innerHTML = `<span style="color:var(--amber);font-weight:500;">⚠ Proxy not configured.</span>
+      <span style="color:var(--muted);font-size:12px;"> Open <strong>change_request_manager_v3.html</strong> in a text editor,
+      find <code style="background:var(--bg);padding:1px 4px;border-radius:3px;">const PROXY_URL</code>
+      near the top of the script and replace <code style="background:var(--bg);padding:1px 4px;border-radius:3px;">YOUR_WORKER_URL_HERE</code>
+      with your Cloudflare Worker URL, then re-upload to GitHub.</span>`;
     if (regenId) document.getElementById(regenId).style.display = 'inline-block';
-    openSettings('AI key needed to run this step');
+    openSettings('Proxy URL not set');
     return;
   }
 
@@ -958,39 +943,39 @@ async function callClaude(system, userText, targetEl, regenId) {
   const contentParts = [...imageParts, { type:'text', text: userText + docContext }];
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version':'2023-06-01'
-      },
+    const res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
         system,
-        messages:[{ role:'user', content: contentParts }]
+        messages: [{ role: 'user', content: contentParts }]
       })
     });
+
     const data = await res.json();
+
     if (data.error) {
       targetEl.classList.remove('loading');
-      const msg = data.error.message || 'Unknown API error';
-      const isKeyError = data.error.type === 'authentication_error';
-      targetEl.innerHTML = `<span style="color:var(--red);">⚠ ${isKeyError ? 'Invalid API key.' : 'API error: ' + msg}</span>${isKeyError ? ' <span style="font-size:12px;color:var(--muted);">Check your key in ⚙ Settings.</span>' : ''}`;
+      targetEl.innerHTML = `<span style="color:var(--red);">⚠ API error: ${data.error.message || 'Unknown error'}</span>
+        <br><small style="color:var(--muted);">Check your Cloudflare Worker configuration and API key.</small>`;
       if (regenId) document.getElementById(regenId).style.display = 'inline-block';
       return;
     }
-    const text = data.content?.map(b => b.text||'').join('') || 'No response received.';
+
+    const text = data.content?.map(b => b.text || '').join('') || 'No response received.';
     targetEl.classList.remove('loading');
     targetEl.innerHTML = text
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
       .replace(/\n/g,'<br>');
     if (regenId) document.getElementById(regenId).style.display = 'inline-block';
+
   } catch (err) {
     targetEl.classList.remove('loading');
-    targetEl.innerHTML = `<span style="color:var(--red)">⚠ Could not reach the Anthropic API.</span><br><small style="color:var(--muted)">${err.message}</small>`;
+    targetEl.innerHTML = `<span style="color:var(--red)">⚠ Could not reach the proxy.</span>
+      <br><small style="color:var(--muted)">${err.message} — check your Worker URL is correct.</small>`;
     if (regenId) document.getElementById(regenId).style.display = 'inline-block';
   }
 }
