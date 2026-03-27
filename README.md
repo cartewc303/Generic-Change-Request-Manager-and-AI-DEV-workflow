@@ -2,7 +2,9 @@
 
 A lightweight, AI-assisted change request workflow tool built as a single self-contained HTML file. Designed for small business teams managing feature requests, UI changes, configuration updates, and software improvements across any platform or system.
 
-> **Live app:** [cartewc303.github.io/Generic-Change-Request-Manager-and-AI-DEV-workflow/change_request_manager_v2.0.0.html](https://cartewc303.github.io/Generic-Change-Request-Manager-and-AI-DEV-workflow/change_request_manager_v2.0.0.html)
+> **Live app (v2):** [cartewc303.github.io/.../v2/change_request_manager_v2.0.0.html](https://cartewc303.github.io/Generic-Change-Request-Manager-and-AI-DEV-workflow/v2/change_request_manager_v2.0.0.html)
+>
+> **Archived (v1):** [cartewc303.github.io/.../v1/change_request_manager_v3.html](https://cartewc303.github.io/Generic-Change-Request-Manager-and-AI-DEV-workflow/v1/change_request_manager_v3.html)
 
 ---
 
@@ -136,17 +138,23 @@ Live at: `https://yourusername.github.io/your-repo/change_request_manager_v2.0.0
 ## Repository structure
 
 ```
-change_request_manager_v2.0.0.html   ← main application
-worker.js                             ← Cloudflare Worker proxy
-README.md                             ← this file
-RELEASE.md                            ← release notes
-skills/
-├── SKILL-01-feature-request.md
-├── SKILL-02-define.md
-├── SKILL-03-scope.md
-├── SKILL-04-build.md
-├── SKILL-05-test.md
-└── SKILL-06-deploy.md
+repo root/
+├── README.md                             ← this file (always points to latest)
+├── RELEASE.md                            ← full version history
+├── worker.js                             ← Cloudflare Worker proxy (shared)
+│
+├── v2/                                   ← current version
+│   ├── change_request_manager_v2.0.0.html
+│   └── skills/
+│       ├── SKILL-01-feature-request.md
+│       ├── SKILL-02-define.md
+│       ├── SKILL-03-scope.md
+│       ├── SKILL-04-build.md
+│       ├── SKILL-05-test.md
+│       └── SKILL-06-deploy.md
+│
+└── v1/                                   ← archived
+    └── change_request_manager_v3.html
 ```
 
 ---
@@ -157,6 +165,38 @@ skills/
 2. Expand any step card → click **Step Skill ✦** to edit that step's AI guidance
 3. Click **Save** — stored in browser localStorage automatically
 4. AI uses your updated content on the next run
+
+---
+
+## Version history
+
+| Version | Date | Status | Highlights |
+|---|---|---|---|
+| **v2.0.0** | 2026-03-26 | ✅ Current | Global Project Profile, per-step Skills, localStorage, 4 platform templates |
+| v1.1.0 | 2026-03-26 | Archived | Cloudflare Worker proxy, Settings modal, secure API key handling |
+| v1.0.0 | 2026-03-26 | Archived | Initial release — 6-step workflow, 2 human gates, AI assist, document library |
+
+Full release notes in [RELEASE.md](./RELEASE.md).
+
+### v2.0.0 — Current
+- Global Project Profile card with Generic, Odoo ERP, Python/Web, and React/JS templates
+- Per-step Skill editors — edit AI guidance per step directly in the browser
+- All Profile and Skill content persists in localStorage across sessions
+- AI context hierarchy: Profile → Step Skill → Uploaded Documents → Form data
+- Complete code rebuild — cleaner, faster, more maintainable
+- Skills folder added to repo with default content for all 6 steps
+
+### v1.1.0 — Archived
+- Cloudflare Worker proxy (`worker.js`) added — API key never in the HTML
+- Settings modal (⚙) with Cloudflare setup instructions
+- Improved error handling for missing proxy URL and invalid API keys
+
+### v1.0.0 — Archived
+- 6-step change request workflow with 2 human approval gates
+- AI-assisted Define, Scope, and Test steps via Anthropic API
+- Document library supporting PDF, images, markdown, Word, TXT, CSV
+- Markdown rendering and preview
+- Single HTML file, zero dependencies
 
 ---
 
