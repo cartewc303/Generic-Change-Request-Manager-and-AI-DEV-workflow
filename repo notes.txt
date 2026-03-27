@@ -1,0 +1,17 @@
+repo root/
+├── README.md                          ← always points to latest version
+├── RELEASE.md                         ← full version history
+├── worker.js                          ← shared, no version needed
+│
+├── v2/                                ← current version
+│   ├── change_request_manager_v2.0.0.html
+│   └── skills/
+│       ├── SKILL-01-feature-request.md
+│       ├── SKILL-02-define.md
+│       ├── SKILL-03-scope.md
+│       ├── SKILL-04-build.md
+│       ├── SKILL-05-test.md
+│       └── SKILL-06-deploy.md
+│
+└── v1/                                ← archived
+    └── change_request_manager_v3.html
