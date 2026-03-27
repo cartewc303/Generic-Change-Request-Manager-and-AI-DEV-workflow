@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Change Request Manager v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+:root{
+  --bg:#f5f6f8;--white:#fff;--border:#e2e4e9;--border2:#c8ccd6;
+  --text:#1a1d23;--muted:#6b7280;
+  --accent:#6c47ff;--accent-bg:#f0edff;--accent-border:#d4caff;
+  --green:#059669;--green-bg:#ecfdf5;--green-border:#a7f3d0;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-border:#fcd34d;
+  --red:#dc2626;--red-bg:#fef2f2;--red-border:#fecaca;
+  --blue:#2563eb;--blue-bg:#eff6ff;--blue-border:#bfdbfe;
+  --human:#7c3aed;--human-bg:#faf5ff;--human-border:#ddd6fe;
+  --teal:#0d9488;--teal-bg:#f0fdfa;--teal-border:#99f6e4;
+  --profile:#0369a1;--profile-bg:#f0f9ff;--profile-border:#bae6fd;
+  --font:'Inter',sans-serif;--radius:10px;--rsm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;min-height:100vh;}
+
+/* HEADER */
+.hdr{background:var(--white);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;}
+.hdr-logo{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0;}
+.hdr-title{font-size:15px;font-weight:600;}
+.hdr-sub{font-size:11px;color:var(--muted);}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.pill-draft{background:var(--bg);color:var(--muted);border:1px solid var(--border2);}
+.pill-active{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);}
+.pill-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.cog-btn{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s;}
+.cog-btn:hover{border-color:var(--accent);background:var(--accent-bg);}
+.cog-btn.ok{border-color:var(--green-border);background:var(--green-bg);}
+.cog-btn.warn{border-color:var(--amber-border);background:var(--amber-bg);}
+
+/* LAYOUT */
+.main{max-width:920px;margin:0 auto;padding:22px 20px 60px;}
+.two-col{display:grid;grid-template-columns:1fr 272px;gap:20px;align-items:start;}
+
+/* PROGRESS TRACK */
+.prog-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:18px;}
+.prog-lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+.steps{display:flex;align-items:center;}
+.si{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;cursor:pointer;}
+.si:not(:last-child)::after{content:'';position:absolute;top:14px;left:50%;right:-50%;height:2px;background:var(--border);z-index:0;}
+.si.done:not(:last-child)::after{background:var(--accent);}
+.sd{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);z-index:1;position:relative;transition:all .2s;}
+.si.active .sd{border-color:var(--accent);background:var(--accent);color:#fff;}
+.si.done .sd{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
+.si.hg.active .sd{background:var(--human);border-color:var(--human);color:#fff;}
+.sl{font-size:10px;font-weight:500;color:var(--muted);margin-top:5px;text-align:center;line-height:1.3;}
+.si.active .sl{color:var(--accent);font-weight:600;}
+.si.hg.active .sl{color:var(--human);}
+.gf{font-size:9px;color:var(--human);font-weight:600;margin-top:1px;}
+
+/* SECTION CARDS */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;}
+.card.active-s{border-color:var(--accent-border);box-shadow:0 0 0 3px rgba(108,71,255,.07);}
+.card.human-s{border-color:var(--human-border);box-shadow:0 0 0 3px rgba(124,58,237,.06);}
+.card.profile-s{border-color:var(--profile-border);box-shadow:0 0 0 3px rgba(3,105,161,.06);}
+.card.locked{opacity:.5;pointer-events:none;}
+.ch{padding:14px 18px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid transparent;}
+.card.open .ch{border-bottom-color:var(--border);}
+.ci{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.ci-def{background:var(--bg);}
+.ci-ai{background:var(--accent-bg);}
+.ci-hm{background:var(--human-bg);}
+.ci-gn{background:var(--green-bg);}
+.ci-pr{background:var(--profile-bg);}
+.ctw{flex:1;}
+.ct{font-size:13px;font-weight:600;}
+.cs{font-size:11px;color:var(--muted);}
+.cbdg{font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;white-space:nowrap;}
+.bdg-ai{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);}
+.bdg-hm{background:var(--human-bg);color:var(--human);border:1px solid var(--human-border);}
+.bdg-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.bdg-pend{background:var(--bg);color:var(--muted);border:1px solid var(--border2);}
+.chev{color:var(--muted);font-size:12px;transition:transform .2s;}
+.card.open .chev{transform:rotate(180deg);}
+.cb{display:none;padding:18px;}
+.card.open .cb{display:block;}
+
+/* FORMS */
+.fg{margin-bottom:14px;}
+.fl{font-size:12px;font-weight:500;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+.fr{color:var(--red);}
+.fh{font-size:11px;color:var(--muted);margin-top:3px;}
+input[type=text],textarea,select{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--rsm);font-family:var(--font);font-size:13px;color:var(--text);background:var(--white);outline:none;transition:border-color .15s;}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,71,255,.08);}
+textarea{resize:vertical;min-height:76px;}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.rg{display:flex;gap:6px;flex-wrap:wrap;}
+.rc{padding:5px 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .15s;}
+.rc:hover{border-color:var(--accent);color:var(--accent);}
+.rc.sel{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);font-weight:600;}
+
+/* AI ASSIST */
+.ai-box{background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--rsm);padding:13px 15px;margin-bottom:14px;}
+.ai-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;font-weight:600;color:var(--accent);flex-wrap:wrap;}
+.ai-dbdg{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border);border-radius:4px;font-size:10px;padding:1px 6px;font-weight:600;}
+.ai-sbdg{background:var(--profile-bg);color:var(--profile);border:1px solid var(--profile-border);border-radius:4px;font-size:10px;padding:1px 6px;font-weight:600;}
+.ai-body{font-size:13px;color:#4338ca;line-height:1.7;}
+.ai-body.loading{color:var(--muted);font-style:italic;display:flex;align-items:center;gap:8px;}
+.spin{width:14px;height:14px;border:2px solid var(--accent-border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ai-regen{font-size:11px;color:var(--accent);cursor:pointer;text-decoration:underline;margin-top:6px;display:none;}
+
+/* HUMAN GATE */
+.hgate{background:var(--human-bg);border:1px solid var(--human-border);border-radius:var(--rsm);padding:15px 17px;}
+.hgate-t{font-size:13px;font-weight:600;color:var(--human);margin-bottom:5px;}
+.hgate-d{font-size:12px;color:#6d28d9;line-height:1.6;margin-bottom:12px;}
+.gate-acts{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:var(--rsm);font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:var(--font);transition:all .15s;}
+.btn-p{background:var(--accent);color:#fff;}.btn-p:hover{background:#5a38e8;}
+.btn-h{background:var(--human);color:#fff;}.btn-h:hover{background:#6d28d9;}
+.btn-o{background:#fff;border:1px solid var(--border2);color:var(--text);}.btn-o:hover{border-color:var(--accent);color:var(--accent);}
+.btn-d{background:#fff;border:1px solid var(--red-border);color:var(--red);}.btn-d:hover{background:var(--red-bg);}
+.btn-g{background:var(--green);color:#fff;}.btn-g:hover{background:#047857;}
+.btn-sm{padding:5px 11px;font-size:12px;}
+
+/* CHECKLIST */
+.cklist{list-style:none;}
+.cklist li{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.cklist li:last-child{border-bottom:none;}
+.ck{width:16px;height:16px;border:1.5px solid var(--border2);border-radius:4px;flex-shrink:0;margin-top:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.ck.on{background:var(--green);border-color:var(--green);}
+.ck.on::after{content:'✓';color:#fff;font-size:10px;font-weight:700;}
+.ck-lbl{flex:1;line-height:1.5;}
+.ck-lbl.on{color:var(--muted);text-decoration:line-through;}
+
+/* BANNERS */
+.bnr{padding:10px 13px;border-radius:var(--rsm);font-size:12px;line-height:1.6;display:flex;gap:8px;align-items:flex-start;margin-bottom:12px;}
+.bnr-b{background:var(--blue-bg);border:1px solid var(--blue-border);color:#1e40af;}
+.bnr-a{background:var(--amber-bg);border:1px solid var(--amber-border);color:#92400e;}
+.bnr-g{background:var(--green-bg);border:1px solid var(--green-border);color:#065f46;}
+.stamp{display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;}
+
+/* DOCUMENT LIBRARY */
+.doclib{background:var(--white);border:1px solid var(--teal-border);border-radius:var(--radius);padding:16px;position:sticky;top:74px;max-height:calc(100vh - 100px);overflow-y:auto;}
+.doclib-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.doclib-title{font-size:13px;font-weight:600;color:var(--teal);flex:1;}
+.doclib-cnt{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border);border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px;}
+.dz{border:2px dashed var(--teal-border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:all .2s;background:var(--teal-bg);}
+.dz:hover,.dz.over{border-color:var(--teal);background:#e6fdf9;}
+.dz input{display:none;}
+.dz-ico{font-size:20px;margin-bottom:4px;}
+.dz-txt{font-size:12px;font-weight:500;color:var(--teal);}
+.dz-hint{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.doc-list{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.doc-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px;}
+.doc-ico{font-size:16px;flex-shrink:0;margin-top:1px;}
+.doc-info{flex:1;min-width:0;}
+.doc-name{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-meta{font-size:10px;color:var(--muted);margin-top:1px;}
+.doc-tags{display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;}
+.dtag{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;}
+.t-pdf{background:#fee2e2;color:#b91c1c;}
+.t-img{background:#dbeafe;color:#1d4ed8;}
+.t-doc{background:#e0e7ff;color:#4338ca;}
+.t-md{background:#d1fae5;color:#065f46;}
+.t-txt{background:#f3f4f6;color:#374151;}
+.t-csv{background:#fef3c7;color:#92400e;}
+.doc-rm{color:var(--muted);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;}
+.doc-rm:hover{color:var(--red);}
+.doc-prev-btn{font-size:10px;color:var(--accent);cursor:pointer;text-decoration:underline;margin-top:2px;display:inline-block;}
+.doc-prev{display:none;margin-top:6px;font-size:10px;color:var(--muted);background:var(--white);border:1px solid var(--border);border-radius:4px;padding:6px 8px;max-height:80px;overflow-y:auto;white-space:pre-wrap;line-height:1.5;}
+.doc-prev.open{display:block;}
+.doc-ai-note{background:var(--teal-bg);border:1px solid var(--teal-border);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--teal);margin-top:10px;line-height:1.5;}
+.doc-empty{margin-top:12px;text-align:center;padding:10px 0;}
+
+/* GLOBAL PROFILE */
+.profile-template-btns{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+.tpl-btn{padding:4px 12px;font-size:11px;font-weight:500;border:1px solid var(--profile-border);background:var(--profile-bg);color:var(--profile);border-radius:20px;cursor:pointer;transition:all .15s;}
+.tpl-btn:hover,.tpl-btn.active-tpl{background:var(--profile);color:#fff;border-color:var(--profile);}
+
+/* SKILL PANELS */
+.skill-wrap{border-top:1px solid var(--border);margin-top:16px;padding-top:14px;}
+.skill-hdr{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin-bottom:0;}
+.skill-ico{width:22px;height:22px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.skill-title{font-size:12px;font-weight:600;color:var(--accent);flex:1;}
+.skill-bdg{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;}
+.sk-def{background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+.sk-cus{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);}
+.skill-chev{font-size:11px;color:var(--muted);transition:transform .2s;}
+.skill-body{display:none;margin-top:10px;}
+.skill-body.open{display:block;}
+.skill-ed{width:100%;min-height:160px;font-family:monospace;font-size:11px;line-height:1.6;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rsm);background:var(--bg);color:var(--text);resize:vertical;outline:none;transition:border-color .15s;}
+.skill-ed:focus{border-color:var(--accent);background:var(--white);}
+.skill-acts{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.skill-hint{font-size:11px;color:var(--muted);flex:1;}
+.sk-save{padding:5px 12px;font-size:11px;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:var(--rsm);cursor:pointer;}
+.sk-save:hover{background:#5a38e8;}
+.sk-reset{padding:5px 10px;font-size:11px;background:none;border:1px solid var(--border2);color:var(--muted);border-radius:var(--rsm);cursor:pointer;}
+.sk-reset:hover{border-color:var(--red);color:var(--red);}
+.sk-flash{font-size:11px;color:var(--green);font-weight:500;opacity:0;transition:opacity .3s;}
+.sk-flash.on{opacity:1;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.overlay.hidden{display:none;}
+.modal{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);width:100%;max-width:440px;overflow:hidden;max-height:90vh;overflow-y:auto;}
+.mhdr{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.mhdr-ico{width:32px;height:32px;background:var(--accent-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.mhdr-title{font-size:14px;font-weight:600;flex:1;}
+.mclose{color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px;}
+.mclose:hover{background:var(--bg);}
+.mbody{padding:20px;}
+.mfoot{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+
+/* MARKDOWN PREVIEW */
+.mdp{background:var(--white);border:1px solid var(--border);border-radius:var(--rsm);padding:12px;font-size:13px;line-height:1.8;margin-top:8px;}
+.mdp h1{font-size:17px;font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.mdp h2{font-size:14px;font-weight:600;margin:10px 0 5px;}
+.mdp h3{font-size:13px;font-weight:600;margin:8px 0 4px;}
+.mdp p{margin-bottom:8px;}
+.mdp ul,.mdp ol{padding-left:18px;margin-bottom:8px;}
+.mdp li{margin-bottom:3px;}
+.mdp code{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 4px;font-family:monospace;font-size:11px;}
+.mdp pre{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;overflow-x:auto;margin-bottom:8px;}
+.mdp pre code{background:none;border:none;}
+.mdp strong{font-weight:600;}
+.mdp em{font-style:italic;}
+.mdp blockquote{border-left:3px solid var(--accent-border);padding-left:10px;color:var(--muted);margin:6px 0;}
+.mdp table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:12px;}
+.mdp th{background:var(--bg);padding:5px 8px;text-align:left;border:1px solid var(--border);font-weight:600;}
+.mdp td{padding:5px 8px;border:1px solid var(--border);}
+.mdp hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
+
+@media(max-width:700px){
+  .two-col{grid-template-columns:1fr;}
+  .doclib{position:static;max-height:none;}
+  .frow{grid-template-columns:1fr;}
+  .steps .sl{font-size:9px;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo">CR</div>
+  <div>
+    <div class="hdr-title">Change Request Manager</div>
+    <div class="hdr-sub">v2.0.0 · AI-Assisted · Project Profile · Step Skills</div>
+  </div>
+  <div class="hdr-r">
+    <span id="doc-hdr-cnt" style="font-size:11px;color:var(--teal);display:none;"></span>
+    <span class="pill pill-draft" id="overall-status">Draft</span>
+    <button class="btn btn-o btn-sm" onclick="resetAll()">New Request</button>
+    <div class="cog-btn warn" id="settings-cog" onclick="openSettings()" title="AI Settings">⚙</div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay hidden" id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <div class="mhdr">
+      <div class="mhdr-ico">⚙</div>
+      <div class="mhdr-title">AI Settings</div>
+      <span class="mclose" onclick="closeSettings()">✕</span>
+    </div>
+    <div class="mbody">
+      <div id="settings-reason" style="display:none;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--rsm);padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:14px;font-weight:500;"></div>
+      <div class="fg">
+        <div class="fl">How AI works in this app</div>
+        <div class="fh" style="margin-bottom:12px;">AI calls are routed through a Cloudflare Worker proxy that holds your Anthropic API key securely — the key never appears in this HTML file or the GitHub repo.</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);padding:14px;font-size:12px;line-height:1.8;margin-bottom:12px;">
+        <strong>Setup steps:</strong><br><br>
+        <strong>1.</strong> Go to <a href="https://dash.cloudflare.com" target="_blank" style="color:var(--accent);">dash.cloudflare.com</a> → Workers &amp; Pages → Create Worker<br>
+        <strong>2.</strong> Paste the contents of <code>worker.js</code> from the repo<br>
+        <strong>3.</strong> Settings → Variables → Add: <code>ANTHROPIC_API_KEY</code> → Encrypt → Save<br>
+        <strong>4.</strong> Deploy — copy your Worker URL<br>
+        <strong>5.</strong> Open this HTML in a text editor, find <code>PROXY_URL</code> and replace <code>YOUR_WORKER_URL_HERE</code>
+      </div>
+      <div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--rsm);padding:10px 14px;font-size:12px;color:#1e40af;">
+        <strong>No API key yet?</strong> Get one free at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);">console.anthropic.com</a> → API Keys → Create Key.
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-p btn-sm" onclick="closeSettings()">Got it</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- GLOBAL PROJECT PROFILE -->
+  <div class="card profile-s open" id="profile-card">
+    <div class="ch" onclick="toggleCard('profile-card')">
+      <div class="ci ci-pr" style="font-size:16px;">🌐</div>
+      <div class="ctw">
+        <div class="ct">Project Profile <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:4px;">— context fed into every AI step</span></div>
+        <div class="cs">Define your platform, stack, team and standards once</div>
+      </div>
+      <span class="cbdg" id="profile-bdg" style="background:var(--bg);color:var(--muted);border:1px solid var(--border2);">Default</span>
+      <span class="chev">▾</span>
+    </div>
+    <div class="cb">
+      <div class="profile-template-btns">
+        <span style="font-size:11px;color:var(--muted);">Quick start:</span>
+        <button class="tpl-btn active-tpl" id="tpl-generic" onclick="loadProfileTemplate('generic')">Generic</button>
+        <button class="tpl-btn" id="tpl-odoo" onclick="loadProfileTemplate('odoo')">Odoo ERP</button>
+        <button class="tpl-btn" id="tpl-python" onclick="loadProfileTemplate('python')">Python / Web</button>
+        <button class="tpl-btn" id="tpl-react" onclick="loadProfileTemplate('react')">React / JS</button>
+      </div>
+      <textarea class="skill-ed" id="profile-editor" style="min-height:200px;" oninput="markProfileCustom()"></textarea>
+      <div class="skill-acts">
+        <span class="skill-hint">Edits save automatically to your browser. This profile is included in every AI step.</span>
+        <span class="sk-flash" id="profile-flash">Saved ✓</span>
+        <button class="sk-reset" onclick="resetProfile()">Reset</button>
+        <button class="sk-save" onclick="saveProfile()">Save Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="prog-wrap">
+    <div class="prog-lbl">Request Progress</div>
+    <div class="steps" id="steps-row">
+      <div class="si active"><div class="sd">1</div><div class="sl">Feature<br>Request</div></div>
+      <div class="si"><div class="sd">2</div><div class="sl">Define</div></div>
+      <div class="si hg"><div class="sd">✦</div><div class="sl">Gate 1<br>Approve</div><div class="gf">👤 Human</div></div>
+      <div class="si"><div class="sd">3</div><div class="sl">Scope</div></div>
+      <div class="si"><div class="sd">4</div><div class="sl">Build</div></div>
+      <div class="si"><div class="sd">5</div><div class="sl">Test</div></div>
+      <div class="si hg"><div class="sd">✦</div><div class="sl">Gate 2<br>Verify</div><div class="gf">👤 Human</div></div>
+      <div class="si"><div class="sd">6</div><div class="sl">Deploy</div></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+  <div id="steps-col">
+
+  <!-- STEP 1: FEATURE REQUEST -->
+  <div class="card open active-s" id="card-0">
+    <div class="ch" onclick="toggleCard('card-0')">
+      <div class="ci ci-def">📋</div>
+      <div class="ctw"><div class="ct">1. Feature Request</div><div class="cs">Capture the ask — who wants it and why</div></div>
+      <span class="cbdg bdg-pend" id="badge-0">In Progress</span><span class="chev">▾</span>
+    </div>
+    <div class="cb">
+      <div class="frow">
+        <div class="fg"><div class="fl">Request Title <span class="fr">*</span></div><input type="text" id="req-title" placeholder="Brief descriptive title"></div>
+        <div class="fg"><div class="fl">Submitted By <span class="fr">*</span></div><input type="text" id="req-by" placeholder="Name / role"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><div class="fl">Requestor Type</div>
+          <div class="rg" id="req-type">
+            <div class="rc" onclick="chip(this,'req-type')">Management</div>
+            <div class="rc" onclick="chip(this,'req-type')">Customer</div>
+            <div class="rc" onclick="chip(this,'req-type')">Internal Staff</div>
+          </div>
+        </div>
+        <div class="fg"><div class="fl">Priority</div>
+          <div class="rg" id="req-priority">
+            <div class="rc" onclick="chip(this,'req-priority')">Low</div>
+            <div class="rc" onclick="chip(this,'req-priority')">Medium</div>
+            <div class="rc" onclick="chip(this,'req-priority')">High</div>
+          </div>
+        </div>
+      </div>
+      <div class="fg"><div class="fl">What is being requested? <span class="fr">*</span></div><textarea id="req-what" placeholder="Describe the change in plain language"></textarea></div>
+      <div class="fg"><div class="fl">Business Reason / Expected Benefit</div><textarea id="req-why" placeholder="Why is this needed?" style="min-height:60px;"></textarea></div>
+      <div class="frow">
+        <div class="fg"><div class="fl">Module / Component</div><input type="text" id="req-module" placeholder="e.g. User Portal, Checkout"></div>
+        <div class="fg"><div class="fl">Change Type</div>
+          <div class="rg" id="req-changetype">
+            <div class="rc" onclick="chip(this,'req-changetype')">UI / UX</div>
+            <div class="rc" onclick="chip(this,'req-changetype')">Feature</div>
+            <div class="rc" onclick="chip(this,'req-changetype')">Config</div>
+            <div class="rc" onclick="chip(this,'req-changetype')">Fix</div>
+            <div class="rc" onclick="chip(this,'req-changetype')">Integration</div>
+          </div>
+        </div>
+      </div>
+      <!-- SKILL PANEL -->
+      <div class="skill-wrap">
+        <div class="skill-hdr" onclick="toggleSkill('skill-0')">
+          <div class="skill-ico">✦</div>
+          <span class="skill-title">Step Skill — Feature Request</span>
+          <span class="skill-bdg sk-def" id="skill-0-bdg">Default</span>
+          <span class="skill-chev" id="skill-0-chev">▾</span>
+        </div>
+        <div class="skill-body" id="skill-0-body">
+          <textarea class="skill-ed" id="skill-0-ed" oninput="markSkillCustom(0)"></textarea>
+          <div class="skill-acts">
+            <span class="skill-hint">This skill is added to the AI context for all steps.</span>
+            <span class="sk-flash" id="skill-0-flash">Saved ✓</span>
+            <button class="sk-reset" onclick="resetSkill(0)">Reset</button>
+            <button class="sk-save" onclick="saveSkill(0)">Save</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+        <button class="btn btn-p" onclick="completeStep(0)">Submit Request →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: DEFINE -->
+  <div class="card locked" id="card-1">
+    <div class="ch" onclick="toggleCard('card-1')">
+      <div class="ci ci-ai">🤖</div>
+      <div class="ctw"><div class="ct">2. Define</div><div class="cs">AI drafts requirements &amp; acceptance criteria</div></div>
+      <span class="cbdg bdg-ai" id="badge-1">AI Assist</span><span class="chev">▾</span>
+    </div>
+    <div class="cb">
+      <div class="ai-box">
+        <div class="ai-hdr">🤖 AI Analysis
+          <span class="ai-dbdg" id="define-doc-bdg" style="display:none;"></span>
+          <span class="ai-sbdg" id="define-skill-bdg" style="display:none;"></span>
+        </div>
+        <div class="ai-body loading" id="ai-define-text"><div class="spin"></div> Analysing your request...</div>
+        <span class="ai-regen" id="define-regen" onclick="runAIDefine(true)">↻ Re-run with latest context</span>
+      </div>
+      <div class="fg"><div class="fl">Acceptance Criteria <span class="fr">*</span></div>
+        <div class="fh" style="margin-bottom:6px;">Review and edit AI-suggested criteria. These become your test conditions at Gate 1.</div>
+        <textarea id="def-criteria" style="min-height:110px;" placeholder="AI will populate this — edit as needed"></textarea>
+      </div>
+      <div class="frow">
+        <div class="fg"><div class="fl">System / Platform Version</div><input type="text" id="def-version" placeholder="e.g. v2.4, Prod build 112"></div>
+        <div class="fg"><div class="fl">Delivery Target</div><input type="text" id="def-target" placeholder="Sprint, date, or milestone"></div>
+      </div>
+      <div class="fg"><div class="fl">Additional Notes / Constraints</div><textarea id="def-notes" placeholder="Brand guidelines, areas NOT to change, dependencies..." style="min-height:60px;"></textarea></div>
+      <!-- SKILL PANEL -->
+      <div class="skill-wrap">
+        <div class="skill-hdr" onclick="toggleSkill('skill-1')">
+          <div class="skill-ico">✦</div>
+          <span class="skill-title">Step Skill — Define</span>
+          <span class="skill-bdg sk-def" id="skill-1-bdg">Default</span>
+          <span class="skill-chev" id="skill-1-chev">▾</span>
+        </div>
+        <div class="skill-body" id="skill-1-body">
+          <textarea class="skill-ed" id="skill-1-ed" oninput="markSkillCustom(1)"></textarea>
+          <div class="skill-acts">
+            <span class="skill-hint">Added to AI context for this step alongside the Project Profile.</span>
+            <span class="sk-flash" id="skill-1-flash">Saved ✓</span>
+            <button class="sk-reset" onclick="resetSkill(1)">Reset</button>
+            <button class="sk-save" onclick="saveSkill(1)">Save</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+        <button class="btn btn-p" onclick="completeStep(1)">Definition Ready → Gate 1</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GATE 1 -->
+  <div class="card locked" id="card-2">
+    <div class="ch" onclick="toggleCard('card-2')">
+      <div class="ci ci-hm">👤</div>
+      <div class="ctw"><div class="ct">Gate 1 — Definition Approval</div><div class="cs">Human sign-off before build begins</div></div>
+      <span class="cbdg bdg-hm" id="badge-2">Awaiting</span><span class="chev">▾</span>
+    </div>
+    <div class="cb">
+      <div class="hgate">
+        <div class="hgate-t">👤 Human Decision Required</div>
+        <div class="hgate-d">Review the request and AI-drafted acceptance criteria. Approving confirms the team understands what is being built before any development time is spent.</div>
+        <div class="frow" style="margin-bottom:12px;">
+          <div class="fg"><div class="fl">Approved By</div><input type="text" id="gate1-by" placeholder="Name / role"></div>
+          <div class="fg"><div class="fl">Date</div><input type="text" id="gate1-date" placeholder="DD/MM/YYYY"></div>
+        </div>
+        <div class="fg" style="margin-bottom:12px;"><div class="fl">Notes / Amendments</div><textarea id="gate1-notes" placeholder="Any changes to scope or criteria..." style="min-height:56px;"></textarea></div>
+        <div class="gate-acts">
+          <button class="btn btn-h" onclick="approveGate(1)">✓ Approve — Proceed to Build</button>
+          <button class="btn btn-d" onclick="rejectGate(1)">✗ Reject — Return to Define</button>
+        </div>
+      </div>
+      <div id="gate1-approved" style="display:none;margin-top:10px;"><span class="stamp">✓ Approved — Build authorised</span></div>
+    </div>
+  </div>
+
+  <!-- STEP 3: SCOPE -->
+  <div class="card locked" id="card-3">
+    <div class="ch" onclick="toggleCard('card-3')">
+      <div class="ci ci-ai">🤖</div>
+      <div class="ctw"><div class="ct">3. Scope</div><div class="cs">AI suggests implementation approach &amp; flags risks</div></div>
+      <span class="cbdg bdg-ai" id="badge-3">AI Assist</span><span class="chev">▾</span>
+    </div>
+    <div class="cb">
+      <div class="ai-box">
+        <div class="ai-hdr">🤖 Scope Analysis
+          <span class="ai-dbdg" id="scope-doc-bdg" style="display:none;"></span>
+          <span class="ai-sbdg" id="scope-skill-bdg" style="display:none;"></span>
+        </div>
+        <div class="ai-body loading" id="ai-scope-text"><div class="spin"></div> Generating scope recommendations...</div>
+        <span class="ai-regen" id="scope-regen" onclick="runAIScope(true)">↻ Re-run with latest context</span>
+      </div>
+      <div class="frow">
+        <div class="fg"><div class="fl">Effort Estimate</div>
+          <div class="rg" id="scope-effort">
+            <div class="rc" onclick="chip(this,'scope-effort')">XS &lt;2h</div>
+            <div class="rc" onclick="chip(this,'scope-effort')">S half-day</div>
+            <div class="rc" onclick="chip(this,'scope-effort')">M 1–2 days</div>
+            <div class="rc" onclick="chip(this,'scope-effort')">L 3–5 days</div>
+            <div class="rc" onclick="chip(this,'scope-effort')">XL 1w+</div>
+          </div>
+        </div>
+        <div class="fg"><div class="fl">Assigned To</div><input type="text" id="scope-dev" placeholder="Name / team"></div>
+      </div>
+      <div class="fg"><div class="fl">Implementation Approach</div><textarea id="scope-approach" placeholder="How will this be built? Which components or files will be touched?" style="min-height:72px;"></textarea></div>
+      <div class="fg"><div class="fl">Dependencies / Risks</div><textarea id="scope-risks" placeholder="Other components affected? Third-party dependencies? Rollback complexity?" style="min-height:56px;"></textarea></div>
+      <!-- SKILL PANEL -->
+      <div class="skill-wrap">
+        <div class="skill-hdr" onclick="toggleSkill('skill-3')">
+          <div class="skill-ico">✦</div>
+          <span class="skill-title">Step Skill — Scope</span>
+          <span class="skill-bdg sk-def" id="skill-3-bdg">Default</span>
+          <span class="skill-chev" id="skill-3-chev">▾</span>
+        </div>
+        <div class="skill-body" id="skill-3-body">
+          <textarea class="skill-ed" id="skill-3-ed" oninput="markSkillCustom(3)"></textarea>
+          <div class="skill-acts">
+            <span class="skill-hint">Add your tech stack, conventions and risk standards here.</span>
+            <span class="sk-flash" id="skill-3-flash">Saved ✓</span>
+            <button class="sk-reset" onclick="resetSkill(3)">Reset</button>
+            <button class="sk-save" onclick="saveSkill(3)">Save</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+        <button class="btn btn-p" onclick="completeStep(3)">Scope Confirmed → Build</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: BUILD -->
+  <div class="card locked" id="card-4">
+    <div class="ch" onclick="toggleCard('card-4')">
+      <div class="ci ci-def">⚙️</div>
+      <div class="ctw"><div class="ct">4. Build</div><div class="cs">Development on staging — track progress here</div></div>
+      <span class="cbdg bdg-pend" id="badge-4">Pending</span><span class="chev">▾</span>
+    </div>
+    <div class="cb">
+      <div class="bnr bnr-b"><span>ℹ</span><span>All changes on a <strong>staging / dev environment</strong> first. Never build directly on production.</span></div>
+      <div class="fg"><div class="fl">Build Checklist</div>
+        <ul class="cklist">
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Changes made on staging / dev environment only</span></li>
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Affected components and files documented in notes</span></li>
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">No unrelated components or config changed</span></li>
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Basic smoke test passed — no critical errors</span></li>
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Screenshot or recording of the change taken</span></li>
+        </ul>
+      </div>
+      <div class="fg"><div class="fl">Build Notes</div><textarea id="build-notes" placeholder="What was changed, how, and anything the reviewer should know..." style="min-height:72px;"></textarea></div>
+      <div class="fg"><div class="fl">Staging URL / Evidence Link</div><input type="text" id="build-url" placeholder="https://staging.example.com or link to screenshot"></div>
+      <!-- SKILL PANEL -->
+      <div class="skill-wrap">
+        <div class="skill-hdr" onclick="toggleSkill('skill-4')">
+          <div class="skill-ico">✦</div>
+          <span class="skill-title">Step Skill — Build</span>
+          <span class="skill-bdg sk-def" id="skill-4-bdg">Default</span>
+          <span class="skill-chev" id="skill-4-chev">▾</span>
+        </div>
+        <div class="skill-body" id="skill-4-body">
+          <textarea class="skill-ed" id="skill-4-ed" oninput="markSkillCustom(4)"></textarea>
+          <div class="skill-acts">
+            <span class="skill-hint">Add your coding standards, branch naming and build conventions.</span>
+            <span class="sk-flash" id="skill-4-flash">Saved ✓</span>
+            <button class="sk-reset" onclick="resetSkill(4)">Reset</button>
+            <button class="sk-save" onclick="saveSkill(4)">Save</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+        <button class="btn btn-p" onclick="completeStep(4)">Build Complete → Test</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5: TEST -->
+  <div class="card locked" id="card-5">
+    <div class="ch" onclick="toggleCard('card-5')">
+      <div class="ci ci-ai">🤖</div>
+      <div class="ctw"><div class="ct">5. Test</div><div class="cs">AI generates test cases from acceptance criteria</div></div>
+      <span class="cbdg bdg-ai" id="badge-5">AI Assist</span><span class="chev">▾</span>
+    </div>
+    <div class="cb">
+      <div class="ai-box">
+        <div class="ai-hdr">🤖 Generated Test Cases
+          <span class="ai-dbdg" id="test-doc-bdg" style="display:none;"></span>
+          <span class="ai-sbdg" id="test-skill-bdg" style="display:none;"></span>
+        </div>
+        <div class="ai-body loading" id="ai-test-text"><div class="spin"></div> Generating test cases...</div>
+        <span class="ai-regen" id="test-regen" onclick="runAITest(true)">↻ Re-run with latest context</span>
+      </div>
+      <div class="fg"><div class="fl">Test Results</div>
+        <ul class="cklist" id="test-checklist"><li style="color:var(--muted);font-size:12px;padding:8px 0;">AI test cases will appear here once generated.</li></ul>
+      </div>
+      <div class="fg"><div class="fl">Test Notes / Issues Found</div><textarea id="test-notes" placeholder="Any failures, edge cases, or observations..." style="min-height:56px;"></textarea></div>
+      <div class="fg"><div class="fl">Overall Test Result</div>
+        <div class="rg" id="test-result">
+          <div class="rc" onclick="chip(this,'test-result')">✓ All passed</div>
+          <div class="rc" onclick="chip(this,'test-result')">⚠ Minor issues</div>
+          <div class="rc" onclick="chip(this,'test-result')">✗ Failed — rebuild needed</div>
+        </div>
+      </div>
+      <!-- SKILL PANEL -->
+      <div class="skill-wrap">
+        <div class="skill-hdr" onclick="toggleSkill('skill-5')">
+          <div class="skill-ico">✦</div>
+          <span class="skill-title">Step Skill — Test</span>
+          <span class="skill-bdg sk-def" id="skill-5-bdg">Default</span>
+          <span class="skill-chev" id="skill-5-chev">▾</span>
+        </div>
+        <div class="skill-body" id="skill-5-body">
+          <textarea class="skill-ed" id="skill-5-ed" oninput="markSkillCustom(5)"></textarea>
+          <div class="skill-acts">
+            <span class="skill-hint">Add your QA standards, test environments and browser targets.</span>
+            <span class="sk-flash" id="skill-5-flash">Saved ✓</span>
+            <button class="sk-reset" onclick="resetSkill(5)">Reset</button>
+            <button class="sk-save" onclick="saveSkill(5)">Save</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+        <button class="btn btn-p" onclick="completeStep(5)">Testing Done → Gate 2</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GATE 2 -->
+  <div class="card locked" id="card-6">
+    <div class="ch" onclick="toggleCard('card-6')">
+      <div class="ci ci-hm">👤</div>
+      <div class="ctw"><div class="ct">Gate 2 — Build Verification</div><div class="cs">Stakeholder sign-off before production deploy</div></div>
+      <span class="cbdg bdg-hm" id="badge-6">Awaiting</span><span class="chev">▾</span>
+    </div>
+    <div class="cb">
+      <div class="hgate">
+        <div class="hgate-t">👤 Human Decision Required</div>
+        <div class="hgate-d">Review the build on staging against the Gate 1 acceptance criteria. This is the last checkpoint before go-live.</div>
+        <div class="frow" style="margin-bottom:12px;">
+          <div class="fg"><div class="fl">Verified By</div><input type="text" id="gate2-by" placeholder="Name / role"></div>
+          <div class="fg"><div class="fl">Date</div><input type="text" id="gate2-date" placeholder="DD/MM/YYYY"></div>
+        </div>
+        <div class="fg" style="margin-bottom:12px;"><div class="fl">Verification Notes</div><textarea id="gate2-notes" placeholder="Confirmation the change meets criteria, or issues needing rework..." style="min-height:56px;"></textarea></div>
+        <div class="gate-acts">
+          <button class="btn btn-g" onclick="approveGate(2)">✓ Verified — Approve for Production</button>
+          <button class="btn btn-d" onclick="rejectGate(2)">✗ Issues Found — Return to Build</button>
+        </div>
+      </div>
+      <div id="gate2-approved" style="display:none;margin-top:10px;"><span class="stamp">✓ Verified — Production deploy authorised</span></div>
+    </div>
+  </div>
+
+  <!-- STEP 6: DEPLOY -->
+  <div class="card locked" id="card-7">
+    <div class="ch" onclick="toggleCard('card-7')">
+      <div class="ci ci-gn">🚀</div>
+      <div class="ctw"><div class="ct">6. Deploy</div><div class="cs">Pre and post-deploy checklist · confirm completion</div></div>
+      <span class="cbdg bdg-pend" id="badge-7">Pending</span><span class="chev">▾</span>
+    </div>
+    <div class="cb">
+      <div class="bnr bnr-a"><span>⚠</span><span>Deploy during a <strong>low-traffic window</strong>. Confirm rollback plan before starting.</span></div>
+      <div class="fg"><div class="fl">Pre-Deploy</div>
+        <ul class="cklist">
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Backup / snapshot taken</span></li>
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Rollback procedure confirmed</span></li>
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Gate 2 approval on record</span></li>
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Deploy window agreed with stakeholders</span></li>
+        </ul>
+      </div>
+      <div class="fg"><div class="fl">Post-Deploy</div>
+        <ul class="cklist">
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Change verified correct on production</span></li>
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">No related areas or components broken</span></li>
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Requestor notified and confirmed satisfied</span></li>
+          <li><div class="ck" onclick="tck(this)"></div><span class="ck-lbl">Change logged in project change log</span></li>
+        </ul>
+      </div>
+      <div class="fg"><div class="fl">Deploy Notes</div><textarea id="deploy-notes" placeholder="Who deployed, when, any issues encountered..." style="min-height:60px;"></textarea></div>
+      <!-- SKILL PANEL -->
+      <div class="skill-wrap">
+        <div class="skill-hdr" onclick="toggleSkill('skill-7')">
+          <div class="skill-ico">✦</div>
+          <span class="skill-title">Step Skill — Deploy</span>
+          <span class="skill-bdg sk-def" id="skill-7-bdg">Default</span>
+          <span class="skill-chev" id="skill-7-chev">▾</span>
+        </div>
+        <div class="skill-body" id="skill-7-body">
+          <textarea class="skill-ed" id="skill-7-ed" oninput="markSkillCustom(7)"></textarea>
+          <div class="skill-acts">
+            <span class="skill-hint">Add your deployment windows, procedures and rollback steps.</span>
+            <span class="sk-flash" id="skill-7-flash">Saved ✓</span>
+            <button class="sk-reset" onclick="resetSkill(7)">Reset</button>
+            <button class="sk-save" onclick="saveSkill(7)">Save</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+        <button class="btn btn-g" onclick="completeStep(7)">✓ Mark Complete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLETE -->
+  <div id="complete-banner" style="display:none;background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);padding:24px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">✅</div>
+    <div style="font-size:16px;font-weight:600;color:var(--green);margin-bottom:6px;">Change Request Complete</div>
+    <div style="font-size:13px;color:#065f46;margin-bottom:16px;">Successfully deployed and verified.</div>
+    <button class="btn btn-o" onclick="resetAll()">Start a New Request</button>
+  </div>
+
+  </div><!-- /steps-col -->
+
+  <!-- DOCUMENT LIBRARY -->
+  <div class="doclib" id="doc-library">
+    <div class="doclib-hdr">
+      <span style="font-size:16px;">📁</span>
+      <span class="doclib-title">Document Library</span>
+      <span class="doclib-cnt" id="doc-count">0</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Upload supporting files at any stage. The AI reads all documents at every assist step automatically.</div>
+    <div class="dz" id="drop-zone" onclick="document.getElementById('file-input').click()"
+         ondragover="dzOver(event)" ondragleave="dzLeave()" ondrop="dzDrop(event)">
+      <input type="file" id="file-input" multiple
+             accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.md,.markdown,.doc,.docx,.csv"
+             onchange="handleFiles(event)">
+      <div class="dz-ico">⬆</div>
+      <div class="dz-txt">Click or drag files here</div>
+      <div class="dz-hint">PDF · Images · Markdown · Word<br>TXT · CSV</div>
+    </div>
+    <div class="doc-list" id="doc-list"></div>
+    <div class="doc-ai-note" id="doc-ai-note" style="display:none;">🤖 <strong id="doc-ai-note-txt"></strong> loaded into AI context.</div>
+    <div class="doc-empty" id="doc-empty">
+      <div style="font-size:22px;margin-bottom:6px;">📄</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6;">No documents yet.<br>Briefs, specs, brand guidelines,<br>screenshots — anything helps.</div>
+    </div>
+  </div>
+
+  </div><!-- /two-col -->
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// PROXY CONFIG — replace with your Cloudflare Worker URL
+// ═══════════════════════════════════════════════════════════
+const PROXY_URL = 'https://cr-proxy.quikdraw-software-account.workers.dev';
+
+// ═══════════════════════════════════════════════════════════
+// SKILL DEFAULTS
+// ═══════════════════════════════════════════════════════════
+const SKILL_DEFAULTS = {
+  0: `# Step Skill — Feature Request
+## Request Classification
+- UI/UX: Visual changes, layout, colours, branding — effort XS–S
+- Configuration: Settings, permissions, workflows — effort XS–M
+- Feature: New functionality, screens, integrations — effort M–L
+- Fix: Correcting broken behaviour — effort XS–S
+- Integration: Connecting systems or APIs — effort M–XL
+
+## Priority Definitions
+- High: Blocking operations or customer-facing issue — same day triage
+- Medium: Important but not blocking — current sprint
+- Low: Nice to have — backlog
+
+## What Makes a Good Request
+1. What is broken or missing?
+2. Who is affected and how many people?
+3. What does success look like?
+4. Is there a workaround currently?
+5. What is the business impact if not done?
+
+## Watch For
+- Requests that are actually multiple separate changes — flag for splitting
+- Requests with no clear success criteria — push back at Define
+- Requests touching core system functionality — escalate effort estimate`,
+
+  1: `# Step Skill — Define
+## How to Write Good Acceptance Criteria
+Criteria must be specific, testable, scoped, and agreed before build starts.
+
+Good: "The portal header background matches brand primary colour (#2B4C8C) on all pages."
+Bad: "The header should look more on-brand."
+
+## Criteria Template
+1. [What the change does] is visible on [where] when [condition].
+2. All existing [related functionality] continues to work correctly.
+3. The change displays correctly on [browsers/devices].
+4. No [errors/broken layouts] are introduced.
+5. The change matches [brand guideline / spec / screenshot provided].
+
+## Definition of Ready
+- Acceptance criteria written in plain, testable language
+- Affected component / module clearly identified
+- Any brand or style references attached as documents
+- Requestor has confirmed the criteria match their expectation
+- Edge cases and exclusions noted
+
+## AI Guidance
+- Default to including a cross-browser check unless back-end only
+- Always include a "no regressions" criterion for any UI change
+- If a brand document is uploaded, reference specific values from it
+- Flag any ambiguity rather than assuming`,
+
+  3: `# Step Skill — Scope
+## Implementation Approach by Change Type
+### UI / CSS Changes
+- Prefer a custom stylesheet over editing core files
+- Use CSS variables for colour and spacing where possible
+- Test in all target browsers
+
+### Configuration Changes
+- Document before and after state of every setting changed
+- Check if the change affects other users or modules
+- Note if a cache clear or restart is required
+
+### Feature Additions
+- Build the smallest possible version first
+- New features must not modify existing data without a migration plan
+- Consider empty states
+
+### Integrations
+- Always use a sandbox/test account during development
+- Map data fields on both sides before writing code
+- Document rate limits of any external API
+
+## Effort Estimation Guide
+- XS < 2h: Single CSS change, label update, toggle a setting
+- S half-day: Multi-element UI change, simple config
+- M 1–2 days: New view or screen, multi-step config
+- L 3–5 days: New feature with UI + logic, complex integration
+- XL 1w+: Major feature, multi-system integration, data migration
+
+## Risk Checklist
+- Change touches core navigation or global layout
+- Change affects more than one module or system
+- Change involves third-party API with rate limits
+- Rollback would require manual data restoration`,
+
+  4: `# Step Skill — Build
+## Build Standards
+- Never build directly on production — staging only until Gate 2
+- Keep changes as small as possible — only touch what is in scope
+- Document as you go — notes in the Build step form
+- If scope is larger than estimated — stop and communicate before continuing
+- Every change must be reversible — know how to undo it before you do it
+
+## Code Standards
+- Use meaningful variable and function names
+- Comment any non-obvious logic
+- No hardcoded credentials or API keys in code
+- Follow existing naming conventions in the codebase
+- Remove all console.log and debug statements before marking complete
+
+## Branch Naming
+- feature/CR-[request-title-slug]
+- Example: feature/CR-portal-header-colour
+
+## Staging Verification
+- Change visible and correct at 100%, 125%, 150% zoom
+- No layout breaks on desktop (1280px+), tablet (768px), mobile (375px)
+- All links and buttons on affected pages still work
+- No JavaScript console errors
+- Cross-browser: Chrome, Firefox, Safari, Edge`,
+
+  5: `# Step Skill — Test
+## Test Case Format
+[Number]. [What to do] → Expected result: [What should happen]
+
+Example:
+1. Navigate to portal home → Expected: Header shows brand blue (#2B4C8C)
+2. Click logo in header → Expected: Navigates to home page as before
+3. Resize to 375px → Expected: Header remains visible, no layout breaks
+4. Open browser console → Expected: No JavaScript errors on page load
+
+## Test Categories
+1. Functional: Does the change do what it should?
+2. Regression: Is anything existing broken?
+3. Visual: Desktop, tablet, mobile, multiple browsers, zoom levels
+4. User Acceptance: Can the actual user complete the intended task?
+
+## Test Result Definitions
+- All passed: Every test case met its expected result → proceed to Gate 2
+- Minor issues: Cosmetic failures, core criteria met → PM decides
+- Failed: One or more core criteria not met → return to Build
+
+## AI Guidance
+- Generate one test case per acceptance criterion minimum
+- Always include at least one regression test
+- Always include cross-browser and mobile layout test for UI changes
+- Always include a console error check for JS/CSS changes
+- Flag if acceptance criteria are too vague to generate meaningful tests`,
+
+  7: `# Step Skill — Deploy
+## Deployment Principles
+1. Never deploy without Gate 2 approval
+2. Always have a rollback plan before starting
+3. Deploy during low-traffic windows
+4. One change at a time — never bundle unrelated changes
+5. Verify immediately after deploy
+
+## Deployment Windows
+- Monday–Thursday: After 6pm local time (avoid Monday mornings)
+- Friday: Not recommended
+- Saturday–Sunday: Emergency only, requires manager approval
+- Public holidays: Not permitted
+
+## Pre-Deploy Checklist
+- Database backup taken and verified
+- Gate 2 approval on record with named verifier and date
+- PM/BA notified deploy is starting
+- Rollback procedure documented
+
+## Post-Deploy Verification
+Within 10 minutes of deploying:
+- Change visible and correct on production
+- Affected page loads without errors
+- Navigation and related pages still work
+- Change looks correct on mobile and desktop
+
+## Change Log Entry Format
+Date: DD/MM/YYYY | Time: HH:MM | Deployed by: [Name]
+Change: [Brief description] | Verified by: [Name] at [Time]
+Notes: [Any issues or observations]`
+};
+
+// ═══════════════════════════════════════════════════════════
+// PROFILE TEMPLATES
+// ═══════════════════════════════════════════════════════════
+const PROFILE_TEMPLATES = {
+  generic: `# Project Profile — Generic
+
+## Project Overview
+**Project name:** [Your project name]
+**Type:** Internal business tool / web application / other
+**Primary users:** [Who uses this system]
+**Business purpose:** [What it does and why it matters]
+
+## Technical Stack
+**Platform:** [e.g. custom web app, SaaS product]
+**Frontend:** HTML, CSS, JavaScript
+**Backend:** [e.g. Python, Node.js, PHP]
+**Database:** [e.g. PostgreSQL, MySQL, MongoDB]
+**Hosting:** [e.g. GitHub Pages, AWS, Vercel]
+**Version control:** GitHub
+
+## Environments
+**Production URL:** https://[your-production-url]
+**Staging URL:** https://[your-staging-url]
+**Deployment method:** [e.g. GitHub Actions, manual FTP, CI/CD pipeline]
+
+## Team
+**Product Manager / BA:** [Name]
+**Lead Developer:** [Name]
+**Stakeholder / Approver:** [Name]
+**Other:** [Name / role]
+
+## Brand Guidelines
+**Primary colour:** #[hex]
+**Secondary colour:** #[hex]
+**Font:** [Font name]
+**Logo:** [Location or description]
+**Tone of voice:** [e.g. professional, friendly, concise]
+
+## Standards & Conventions
+**Coding style:** [e.g. ESLint, Prettier, PEP8]
+**Branch naming:** feature/[description], fix/[description]
+**Commit format:** [e.g. conventional commits]
+**Testing approach:** [e.g. manual QA, Jest unit tests]
+
+## Known Constraints
+**Do not touch:** [Areas off-limits without senior approval]
+**Dependencies:** [Critical third-party services]
+**Compliance:** [Any regulatory requirements e.g. GDPR, HIPAA]`,
+
+  odoo: `# Project Profile — Odoo ERP
+
+## Project Overview
+**Platform:** Odoo ERP
+**Version:** Odoo [17 / 16 / 15 — update as appropriate]
+**Edition:** Community / Enterprise
+**Hosting:** Odoo Online / Odoo.sh / Self-hosted
+
+## Odoo Environment
+**Production URL:** https://[yourcompany].odoo.com
+**Staging URL:** https://[yourcompany-staging].odoo.com
+**Database name:** [db name]
+
+## Active Modules
+[List the key modules in use — e.g.]
+- Sales, CRM, Invoicing
+- Inventory, Purchase
+- Project, Timesheets
+- Website / eCommerce
+- HR, Payroll
+- Manufacturing
+
+## Team
+**Odoo Administrator:** [Name]
+**Developer / Implementer:** [Name]
+**Business Owner / Approver:** [Name]
+**End Users:** [Departments / roles]
+
+## Customisation Approach
+- Prefer Odoo Studio for no-code field/view changes
+- Use inherited views (xpath) rather than overriding core views
+- Custom modules stored in /custom-addons directory
+- All changes version-controlled in GitHub before deployment
+- Never edit core Odoo files directly
+
+## Brand Guidelines
+**Primary colour:** #[hex] (used in portal/website theme)
+**Secondary colour:** #[hex]
+**Company logo:** [Location]
+**Portal font:** [Font name]
+
+## Technical Conventions
+**CSS overrides:** Use /static/src/css/custom.css in custom module
+**Asset bundles:** Declare in __manifest__.py assets section
+**Bootstrap version:** Odoo 17 uses Bootstrap 5, Odoo 16 uses Bootstrap 5, Odoo 15 uses Bootstrap 4
+**Python version:** 3.10+
+
+## Known Constraints
+- Do not modify /odoo/addons/ core files
+- Always test in staging before production — no exceptions
+- Module upgrades require developer mode enabled
+- Portal changes affect all customer-facing pages — test thoroughly
+- GDPR: Personal data fields require legal review before adding
+
+## Upgrade Considerations
+- Document all custom modules before each Odoo version upgrade
+- Test custom views after any Odoo update
+- Keep a migration checklist per module`,
+
+  python: `# Project Profile — Python / Web Application
+
+## Project Overview
+**Project name:** [Your project name]
+**Framework:** [Django / Flask / FastAPI / other]
+**Python version:** [e.g. 3.11]
+**Purpose:** [What the application does]
+
+## Architecture
+**Frontend:** [e.g. HTML/Jinja2 templates / React / Vue]
+**Backend:** Python [framework]
+**Database:** [PostgreSQL / MySQL / SQLite]
+**Cache:** [Redis / Memcached / none]
+**Task queue:** [Celery / none]
+**Search:** [Elasticsearch / none]
+
+## Environments
+**Production URL:** https://[your-domain]
+**Staging URL:** https://[staging.your-domain]
+**Local dev:** http://localhost:[port]
+**Deployment:** [Docker / Heroku / AWS / DigitalOcean / other]
+
+## Repository Structure
+\`\`\`
+project/
+├── app/          # Application code
+├── templates/    # HTML templates
+├── static/       # CSS, JS, images
+├── tests/        # Test suite
+├── requirements/ # Dependencies
+└── docs/         # Documentation
+\`\`\`
+
+## Team
+**Lead Developer:** [Name]
+**Backend Developer:** [Name]
+**Frontend Developer:** [Name]
+**DevOps:** [Name]
+**Product Owner:** [Name]
+
+## Coding Standards
+**Style guide:** PEP 8 + Black formatter
+**Linter:** Flake8 / Ruff
+**Type hints:** Required on all new functions
+**Docstrings:** Google style
+**Test framework:** pytest
+**Coverage target:** 80%+ on new code
+
+## Git Conventions
+**Branch naming:** feature/[ticket]-[description], fix/[ticket]-[description]
+**Commit format:** Conventional Commits (feat:, fix:, docs:, refactor:)
+**PR requirements:** Tests passing, code review from 1 developer minimum
+**Protected branches:** main, staging
+
+## Dependencies
+**Package manager:** pip + requirements.txt / Poetry / pipenv
+**Virtual environment:** venv / conda
+**Key packages:** [list critical packages and versions]
+
+## Known Constraints
+- Never commit secrets — use .env files and python-dotenv
+- Database migrations must be reviewed before running on production
+- API rate limits: [list any external API constraints]
+- GDPR: All PII must be logged and deleteable on request`,
+
+  react: `# Project Profile — React / JavaScript Application
+
+## Project Overview
+**Project name:** [Your project name]
+**Framework:** React [version]
+**Build tool:** [Vite / Create React App / Next.js / other]
+**Purpose:** [What the application does]
+
+## Technical Stack
+**Frontend:** React, JavaScript / TypeScript
+**State management:** [Redux / Zustand / Context API / none]
+**Styling:** [Tailwind CSS / CSS Modules / Styled Components / plain CSS]
+**UI library:** [MUI / Shadcn / Ant Design / none]
+**Testing:** [Jest + React Testing Library / Vitest / Cypress]
+**Backend/API:** [REST API URL / GraphQL endpoint / Firebase]
+
+## Environments
+**Production URL:** https://[your-domain]
+**Staging URL:** https://[staging.your-domain]
+**Local dev:** http://localhost:3000
+**Deployment:** [Vercel / Netlify / GitHub Pages / AWS Amplify]
+
+## Repository Structure
+\`\`\`
+src/
+├── components/   # Reusable UI components
+├── pages/        # Route-level components
+├── hooks/        # Custom React hooks
+├── store/        # State management
+├── utils/        # Helper functions
+├── api/          # API calls and services
+└── styles/       # Global styles / theme
+\`\`\`
+
+## Team
+**Lead Developer:** [Name]
+**Frontend Developer:** [Name]
+**Designer:** [Name]
+**Product Owner:** [Name]
+
+## Coding Standards
+**Language:** TypeScript preferred, JavaScript accepted for minor changes
+**Linter:** ESLint with [config name]
+**Formatter:** Prettier
+**Component style:** Functional components + hooks only (no class components)
+**File naming:** PascalCase for components, camelCase for utilities
+**CSS:** [BEM / utility-first / CSS Modules — pick one]
+
+## Git Conventions
+**Branch naming:** feature/[ticket]-[description], fix/[ticket]-[description]
+**Commit format:** Conventional Commits
+**PR requirements:** All tests passing, no ESLint errors, 1 reviewer minimum
+**Protected branches:** main, develop
+
+## Performance Standards
+**Bundle size:** Keep individual chunks under 200kb
+**Lighthouse score targets:** Performance 90+, Accessibility 90+
+**Core Web Vitals:** LCP < 2.5s, FID < 100ms, CLS < 0.1
+
+## Known Constraints
+- Never store sensitive data in localStorage — use httpOnly cookies
+- All API calls must handle loading, error, and empty states
+- Mobile-first CSS — all components must work at 375px minimum
+- Accessibility: All interactive elements need ARIA labels
+- Environment variables must be prefixed VITE_ or REACT_APP_`
+};
+
+// ═══════════════════════════════════════════════════════════
+// SKILL & PROFILE STATE
+// ═══════════════════════════════════════════════════════════
+const SKILL_IDS = [0,1,3,4,5,7];
+let skillData = {};
+let profileData = '';
+let profileIsCustom = false;
+
+function initSkillsAndProfile() {
+  // Load profile
+  const savedProfile = localStorage.getItem('crm_profile');
+  profileData = savedProfile || PROFILE_TEMPLATES.generic;
+  profileIsCustom = !!savedProfile;
+  document.getElementById('profile-editor').value = profileData;
+  updateProfileBadge();
+
+  // Load skills
+  SKILL_IDS.forEach(id => {
+    const saved = localStorage.getItem(`crm_skill_${id}`);
+    skillData[id] = saved || SKILL_DEFAULTS[id];
+    const ed = document.getElementById(`skill-${id}-ed`);
+    if (ed) ed.value = skillData[id];
+    updateSkillBadge(id);
+  });
+
+  // Set cog status
+  updateCogStatus();
+}
+
+// Profile
+function saveProfile() {
+  profileData = document.getElementById('profile-editor').value;
+  localStorage.setItem('crm_profile', profileData);
+  profileIsCustom = true;
+  updateProfileBadge();
+  flash('profile-flash', 'profile-bdg');
+}
+function resetProfile() {
+  if (!confirm('Reset profile to the current template default?')) return;
+  const activeTpl = document.querySelector('.tpl-btn.active-tpl')?.id?.replace('tpl-','') || 'generic';
+  profileData = PROFILE_TEMPLATES[activeTpl];
+  document.getElementById('profile-editor').value = profileData;
+  localStorage.removeItem('crm_profile');
+  profileIsCustom = false;
+  updateProfileBadge();
+}
+function markProfileCustom() { profileIsCustom = true; updateProfileBadge(); }
+function updateProfileBadge() {
+  const bdg = document.getElementById('profile-bdg');
+  if (profileIsCustom) { bdg.textContent = 'Custom'; bdg.style.cssText = 'background:var(--profile-bg);color:var(--profile);border:1px solid var(--profile-border);font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;'; }
+  else { bdg.textContent = 'Default'; bdg.style.cssText = 'background:var(--bg);color:var(--muted);border:1px solid var(--border2);font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;'; }
+}
+function loadProfileTemplate(tpl) {
+  document.querySelectorAll('.tpl-btn').forEach(b => b.classList.remove('active-tpl'));
+  document.getElementById('tpl-'+tpl)?.classList.add('active-tpl');
+  profileData = PROFILE_TEMPLATES[tpl];
+  document.getElementById('profile-editor').value = profileData;
+  profileIsCustom = false;
+  updateProfileBadge();
+}
+function toggleGlobalProfile() { toggleCard('profile-card'); }
+
+// Skills
+function saveSkill(id) {
+  skillData[id] = document.getElementById(`skill-${id}-ed`).value;
+  localStorage.setItem(`crm_skill_${id}`, skillData[id]);
+  updateSkillBadge(id);
+  flash(`skill-${id}-flash`, null);
+}
+function resetSkill(id) {
+  if (!confirm('Reset this skill to the default?')) return;
+  skillData[id] = SKILL_DEFAULTS[id];
+  document.getElementById(`skill-${id}-ed`).value = skillData[id];
+  localStorage.removeItem(`crm_skill_${id}`);
+  updateSkillBadge(id);
+}
+function markSkillCustom(id) { updateSkillBadge(id, true); }
+function updateSkillBadge(id, forceCustom = false) {
+  const bdg = document.getElementById(`skill-${id}-bdg`);
+  if (!bdg) return;
+  const isCustom = forceCustom || !!localStorage.getItem(`crm_skill_${id}`);
+  bdg.textContent = isCustom ? 'Custom' : 'Default';
+  bdg.className = 'skill-bdg ' + (isCustom ? 'sk-cus' : 'sk-def');
+}
+function toggleSkill(id) {
+  const body = document.getElementById(`${id}-body`);
+  const chev = document.getElementById(`${id}-chev`);
+  if (!body) return;
+  body.classList.toggle('open');
+  if (chev) chev.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+function flash(flashId) {
+  const el = document.getElementById(flashId);
+  if (!el) return;
+  el.classList.add('on');
+  setTimeout(() => el.classList.remove('on'), 1600);
+}
+
+// Build skill + profile context for AI
+function buildSkillContext(stepId) {
+  const profile = profileData || '';
+  const skill = skillData[stepId] || '';
+  let ctx = '';
+  if (profile) ctx += `\n\n--- Project Profile (applies to all steps) ---\n${profile}\n--- End Project Profile ---`;
+  if (skill)   ctx += `\n\n--- Step Skill (specific to this step) ---\n${skill}\n--- End Step Skill ---`;
+  return ctx;
+}
+function updateSkillBadges() {
+  const hasProfile = profileData && profileData.length > 10;
+  ['define-skill-bdg','scope-skill-bdg','test-skill-bdg'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = hasProfile ? 'inline' : 'none';
+    el.textContent = hasProfile ? 'Profile + Skill active' : '';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// DOCUMENT LIBRARY
+// ═══════════════════════════════════════════════════════════
+const docLib = [];
+const FICONS = {pdf:'📕',img:'🖼',doc:'📘',md:'📗',csv:'📊',txt:'📄'};
+const FTAGS  = {pdf:['t-pdf','PDF'],img:['t-img','Image'],doc:['t-doc','Doc'],md:['t-md','MD'],csv:['t-csv','CSV'],txt:['t-txt','TXT']};
+
+function getKind(type, name) {
+  if (type.includes('pdf')) return 'pdf';
+  if (type.startsWith('image/')) return 'img';
+  if (type.includes('word') || name.match(/\.docx?$/)) return 'doc';
+  if (name.match(/\.md$|\.markdown$/)) return 'md';
+  if (name.match(/\.csv$/) || type.includes('csv')) return 'csv';
+  return 'txt';
+}
+function fmtSize(b) { return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'; }
+
+function mdParse(md) {
+  return md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/```[\w]*\n([\s\S]*?)```/g,(_,c)=>`<pre><code>${c}</code></pre>`)
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>').replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>').replace(/^---$/gm,'<hr>')
+    .replace(/^\- (.+)$/gm,'<li>$1</li>').replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+    .split('\n').map(l=>/^<(h[1-3]|ul|ol|li|pre|blockquote|hr)/.test(l.trim())||!l.trim()?l:`<p>${l}</p>`).join('\n');
+}
+
+function dzOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('over'); }
+function dzLeave()  { document.getElementById('drop-zone').classList.remove('over'); }
+function dzDrop(e)  { e.preventDefault(); dzLeave(); processFiles([...e.dataTransfer.files]); }
+function handleFiles(e) { processFiles([...e.target.files]); e.target.value=''; }
+
+function processFiles(files) {
+  files.forEach(file => {
+    const id = 'doc_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
+    const kind = getKind(file.type, file.name);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const res = ev.target.result;
+      let content='', base64='', parsedHtml='';
+      if (kind==='img') { base64=res.split(',')[1]; content=`[Image: ${file.name}]`; }
+      else if (kind==='pdf') { base64=res.split(',')[1]; content=`[PDF: ${file.name} (${fmtSize(file.size)})]`; }
+      else if (kind==='md') { content=res; parsedHtml=mdParse(res); }
+      else { content=res; }
+      docLib.push({id,name:file.name,size:file.size,type:file.type,kind,content,base64,parsedHtml,mediaType:file.type});
+      renderDocs(); updateDocBadges();
+    };
+    if (kind==='img'||kind==='pdf') reader.readAsDataURL(file); else reader.readAsText(file);
+  });
+}
+function removeDoc(id) { const i=docLib.findIndex(d=>d.id===id); if(i>-1)docLib.splice(i,1); renderDocs(); updateDocBadges(); }
+function toggleDocPreview(id) {
+  const el=document.getElementById('dprev-'+id), btn=document.getElementById('dprevbtn-'+id);
+  if(!el) return; el.classList.toggle('open');
+  btn.textContent = el.classList.contains('open')?'Hide':'Preview';
+}
+function renderDocs() {
+  const list=document.getElementById('doc-list'), empty=document.getElementById('doc-empty');
+  const cnt=document.getElementById('doc-count'), note=document.getElementById('doc-ai-note');
+  const ntxt=document.getElementById('doc-ai-note-txt'), hdr=document.getElementById('doc-hdr-cnt');
+  const n=docLib.length;
+  cnt.textContent=n; empty.style.display=n===0?'block':'none'; note.style.display=n>0?'block':'none';
+  hdr.style.display=n>0?'inline':'none';
+  if(n>0){ntxt.textContent=`${n} document${n!==1?'s':''}`;hdr.textContent=`📁 ${n} doc${n!==1?'s':''}`;}
+  list.innerHTML='';
+  docLib.forEach(doc=>{
+    const [tc,tl]=FTAGS[doc.kind]||FTAGS.txt, ico=FICONS[doc.kind]||FICONS.txt;
+    const canPrev=doc.kind==='md'||doc.kind==='txt'||doc.kind==='csv';
+    const div=document.createElement('div'); div.className='doc-item';
+    div.innerHTML=`<div class="doc-ico">${ico}</div><div class="doc-info">
+      <div class="doc-name" title="${doc.name}">${doc.name}</div>
+      <div class="doc-meta">${fmtSize(doc.size)}</div>
+      <div class="doc-tags"><span class="dtag ${tc}">${tl}</span>${doc.kind==='md'?'<span class="dtag t-md">Rendered</span>':''}</div>
+      ${canPrev?`<span class="doc-prev-btn" id="dprevbtn-${doc.id}" onclick="toggleDocPreview('${doc.id}')">Preview</span>
+      <div class="doc-prev" id="dprev-${doc.id}">${doc.kind==='md'&&doc.parsedHtml?doc.parsedHtml.slice(0,600)+(doc.parsedHtml.length>600?'…':''):(doc.content||'').slice(0,400)+((doc.content?.length||0)>400?'…':'')}</div>`:''}
+    </div><div class="doc-rm" onclick="removeDoc('${doc.id}')" title="Remove">✕</div>`;
+    list.appendChild(div);
+  });
+}
+function updateDocBadges() {
+  const n=docLib.length, label=n>0?`${n} doc${n!==1?'s':''} in context`:null;
+  ['define-doc-bdg','scope-doc-bdg','test-doc-bdg'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.style.display=label?'inline':'none'; if(label)el.textContent=label;
+  });
+}
+function buildDocContext() {
+  if(!docLib.length) return '';
+  const parts=docLib.map(doc=>{
+    if(doc.kind==='img') return `[Uploaded image: ${doc.name}]`;
+    if(doc.kind==='pdf') return `[Uploaded PDF: ${doc.name}]\n${doc.content}`;
+    if(doc.kind==='md')  return `--- Markdown: ${doc.name} ---\n${doc.content}\n--- End ---`;
+    return `--- Document: ${doc.name} ---\n${doc.content}\n--- End ---`;
+  });
+  return `\n\nUploaded supporting documents:\n\n${parts.join('\n\n')}`;
+}
+function buildImageParts() {
+  return docLib.filter(d=>d.kind==='img'&&d.base64).map(d=>({type:'image',source:{type:'base64',media_type:d.mediaType,data:d.base64}}));
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS MODAL
+// ═══════════════════════════════════════════════════════════
+function openSettings(reason) {
+  const el=document.getElementById('settings-reason');
+  if(reason&&el){el.textContent=reason;el.style.display='block';}else if(el){el.style.display='none';}
+  document.getElementById('settings-overlay').classList.remove('hidden');
+}
+function closeSettings() { document.getElementById('settings-overlay').classList.add('hidden'); }
+function updateCogStatus() {
+  const cog=document.getElementById('settings-cog');
+  const ok=PROXY_URL&&PROXY_URL!=='YOUR_WORKER_URL_HERE';
+  cog.className='cog-btn '+(ok?'ok':'warn');
+  cog.title=ok?'AI proxy configured ✓':'AI proxy not configured — click for setup';
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLAUDE API CALL
+// ═══════════════════════════════════════════════════════════
+async function callClaude(system, userText, targetEl, regenId, stepId) {
+  if(!PROXY_URL||PROXY_URL==='YOUR_WORKER_URL_HERE'){
+    targetEl.classList.remove('loading');
+    targetEl.innerHTML=`<span style="color:var(--amber);font-weight:500;">⚠ Proxy not configured.</span> <span style="color:var(--muted);font-size:12px;">Find <code>PROXY_URL</code> in this file and replace <code>YOUR_WORKER_URL_HERE</code> with your Cloudflare Worker URL.</span>`;
+    if(regenId) document.getElementById(regenId).style.display='inline-block';
+    openSettings('Proxy URL not set'); return;
+  }
+  targetEl.innerHTML='<div class="spin"></div> Thinking...';
+  targetEl.classList.add('loading');
+  if(regenId) document.getElementById(regenId).style.display='none';
+
+  const skillCtx = buildSkillContext(stepId);
+  const docCtx   = buildDocContext();
+  const imgParts = buildImageParts();
+  const fullText = userText + skillCtx + docCtx;
+  const parts    = [...imgParts,{type:'text',text:fullText}];
+
+  try {
+    const res = await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system,messages:[{role:'user',content:parts}]})});
+    const data = await res.json();
+    if(data.error){
+      targetEl.classList.remove('loading');
+      targetEl.innerHTML=`<span style="color:var(--red);">⚠ API error: ${data.error.message||'Unknown error'}</span><br><small style="color:var(--muted);">Check your Cloudflare Worker and API key.</small>`;
+      if(regenId) document.getElementById(regenId).style.display='inline-block'; return;
+    }
+    const text=data.content?.map(b=>b.text||'').join('')||'No response received.';
+    targetEl.classList.remove('loading');
+    targetEl.innerHTML=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+    if(regenId) document.getElementById(regenId).style.display='inline-block';
+  } catch(err){
+    targetEl.classList.remove('loading');
+    targetEl.innerHTML=`<span style="color:var(--red)">⚠ Could not reach the proxy.</span><br><small style="color:var(--muted)">${err.message}</small>`;
+    if(regenId) document.getElementById(regenId).style.display='inline-block';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// AI RUNNERS
+// ═══════════════════════════════════════════════════════════
+async function runAIDefine(regen=false) {
+  const title=document.getElementById('req-title').value||'a change request';
+  const what=document.getElementById('req-what').value||'';
+  const why=document.getElementById('req-why').value||'';
+  const mod=document.getElementById('req-module').value||'the system';
+  const type=document.querySelector('#req-changetype .sel')?.textContent||'';
+  const docs=docLib.length?` ${docLib.length} supporting document(s) uploaded.`:'';
+  const system=`You are a business analyst assistant helping define software change requests clearly.
+Given a change request, produce:
+1. A 1–2 sentence plain-language analysis of what is being asked
+2. 4–6 numbered testable acceptance criteria under the heading "Suggested Acceptance Criteria:"
+Use the Project Profile and Step Skill context provided to make your output specific to this project.
+Be practical. No preamble or closing remarks.`;
+  const user=`Title: ${title}\nComponent: ${mod}\nType: ${type}\nWhat: ${what}\nWhy: ${why}${docs}`;
+  const el=document.getElementById('ai-define-text');
+  await callClaude(system,user,el,regen?'define-regen':null,1);
+  document.getElementById('define-regen').style.display='inline-block';
+  if(!regen&&!document.getElementById('def-criteria').value){
+    setTimeout(()=>{const raw=el.innerText,idx=raw.indexOf('Suggested Acceptance Criteria:');if(idx>-1)document.getElementById('def-criteria').value=raw.slice(idx+31).trim();},400);
+  }
+  updateSkillBadges();
+}
+async function runAIScope(regen=false) {
+  const title=document.getElementById('req-title').value||'this request';
+  const type=document.querySelector('#req-changetype .sel')?.textContent||'change';
+  const mod=document.getElementById('req-module').value||'the system';
+  const criteria=document.getElementById('def-criteria').value||'';
+  const version=document.getElementById('def-version').value||'';
+  const docs=docLib.length?` ${docLib.length} supporting document(s) uploaded.`:'';
+  const system=`You are a senior software developer giving practical scoping advice.
+Cover: recommended implementation approach, key areas to change, risks or dependencies, effort estimate.
+Use the Project Profile and Step Skill context to give platform-specific advice.
+Use plain language with short bold headers. 150–250 words maximum.`;
+  const user=`Request: ${title}\nType: ${type}\nComponent: ${mod}\nVersion: ${version}\nCriteria: ${criteria}${docs}`;
+  await callClaude(system,user,document.getElementById('ai-scope-text'),regen?'scope-regen':null,3);
+  document.getElementById('scope-regen').style.display='inline-block';
+  updateSkillBadges();
+}
+async function runAITest(regen=false) {
+  const title=document.getElementById('req-title').value||'this change';
+  const mod=document.getElementById('req-module').value||'the system';
+  const criteria=document.getElementById('def-criteria').value||'';
+  const build=document.getElementById('build-notes').value||'';
+  const docs=docLib.length?` ${docLib.length} supporting document(s) uploaded.`:'';
+  const system=`You are a QA analyst generating practical test cases for a software change request.
+Output ONLY a numbered list of test cases. Each is one sentence: what to check and expected result.
+Use the Project Profile and Step Skill context to generate environment-specific tests.
+Generate 5–8 test cases. No preamble or summary — only the numbered list.`;
+  const user=`Feature: ${title}\nComponent: ${mod}\nCriteria:\n${criteria}\nBuild notes: ${build}${docs}`;
+  const el=document.getElementById('ai-test-text');
+  await callClaude(system,user,el,regen?'test-regen':null,5);
+  document.getElementById('test-regen').style.display='inline-block';
+  updateSkillBadges();
+  setTimeout(()=>{
+    const lines=el.innerText.split('\n').filter(l=>/^\d+\./.test(l.trim()));
+    const list=document.getElementById('test-checklist'); list.innerHTML='';
+    if(lines.length>0){lines.forEach(line=>{const clean=line.replace(/^\d+\.\s*/,'').trim();if(!clean)return;const li=document.createElement('li');li.innerHTML=`<div class="ck" onclick="tck(this)"></div><span class="ck-lbl">${clean}</span>`;list.appendChild(li);});}
+    else{list.innerHTML='<li style="color:var(--muted);font-size:12px;padding:8px 0;">Add test steps manually based on your acceptance criteria.</li>';}
+  },500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// STEP FLOW
+// ═══════════════════════════════════════════════════════════
+let currentStep=0;
+function completeStep(idx){
+  if(idx===0){if(!document.getElementById('req-title').value.trim()){alert('Please enter a request title.');return;}if(!document.getElementById('req-what').value.trim()){alert('Please describe what is being requested.');return;}}
+  const dots=document.querySelectorAll('#steps-row .si');
+  dots[idx].classList.add('done');dots[idx].classList.remove('active');
+  const bdg=document.getElementById('badge-'+idx);
+  if(bdg){bdg.textContent='Done';bdg.className='cbdg bdg-done';}
+  document.getElementById('card-'+idx).classList.remove('active-s','human-s','open');
+  const next=idx+1;
+  if(next<=7){unlockCard(next);if(dots[next]){dots[next].classList.add('active');dots[next].classList.remove('done');}currentStep=next;}
+  if(idx===7)showComplete();
+  updateStatus();
+}
+function unlockCard(idx){
+  const card=document.getElementById('card-'+idx); if(!card) return;
+  card.classList.remove('locked'); card.classList.add('open');
+  if(idx===1){card.classList.add('active-s');runAIDefine();}
+  if(idx===2)card.classList.add('human-s');
+  if(idx===3)runAIScope();
+  if(idx===5)runAITest();
+  setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),120);
+}
+function approveGate(g){
+  const idx=g===1?2:6,by=document.getElementById('gate'+g+'-by');
+  if(!by.value.trim()){alert('Please enter who is approving.');return;}
+  document.getElementById('gate'+g+'-approved').style.display='block';
+  const bdg=document.getElementById('badge-'+idx);
+  bdg.textContent='Approved';bdg.className='cbdg bdg-done';
+  const dots=document.querySelectorAll('#steps-row .si');
+  dots[idx].classList.add('done');dots[idx].classList.remove('active');
+  document.getElementById('card-'+idx).classList.remove('open');
+  const next=idx+1;unlockCard(next);if(dots[next])dots[next].classList.add('active');
+  currentStep=next;updateStatus();
+}
+function rejectGate(g){
+  const ret=g===1?1:4,lbl=g===1?'Define':'Build';
+  alert(`Request returned to ${lbl}. Please revise and resubmit.`);
+  const card=document.getElementById('card-'+ret);
+  card.classList.remove('locked');card.classList.add('open','active-s');
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+  const bdg=document.getElementById('badge-'+ret);
+  if(bdg){bdg.textContent='Needs Revision';bdg.style.cssText='background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;';}
+}
+function showComplete(){
+  document.getElementById('complete-banner').style.display='block';
+  document.getElementById('complete-banner').scrollIntoView({behavior:'smooth'});
+  document.getElementById('overall-status').textContent='Complete';
+  document.getElementById('overall-status').className='pill pill-done';
+}
+function updateStatus(){
+  const el=document.getElementById('overall-status');
+  if(currentStep===0){el.textContent='Draft';el.className='pill pill-draft';}
+  else if(currentStep>=7){el.textContent='Complete';el.className='pill pill-done';}
+  else{el.textContent='In Progress';el.className='pill pill-active';}
+}
+function resetAll(){
+  if(currentStep>0&&!confirm('Start a new request? Current request data will be cleared.\n\nNote: Your Project Profile and Step Skills are saved and will be kept.'))return;
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+function toggleCard(id){
+  const card=document.getElementById(id); if(!card||card.classList.contains('locked'))return;
+  card.classList.toggle('open');
+}
+function chip(el,groupId){
+  document.querySelectorAll('#'+groupId+' .rc').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function tck(el){
+  el.classList.toggle('on');
+  const lbl=el.nextElementSibling;if(lbl)lbl.classList.toggle('on',el.classList.contains('on'));
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  initSkillsAndProfile();
+  renderDocs();
+  updateCogStatus();
+});
+</script>
+</body>
+</html>
